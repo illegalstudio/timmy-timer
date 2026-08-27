@@ -14,6 +14,7 @@ export type Project = {
 
 export type Entry = {
   id: number;
+  client_id: number;
   project_id: number;
   started_at: string;
   ended_at: string;

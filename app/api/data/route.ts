@@ -31,7 +31,7 @@ export async function GET() {
     env.DB.prepare("SELECT * FROM clients WHERE archived = 0 ORDER BY name"),
     env.DB.prepare("SELECT * FROM projects WHERE archived = 0 ORDER BY name"),
     env.DB.prepare(
-      `SELECT e.*, p.name project_name, p.color project_color, c.name client_name FROM time_entries e JOIN projects p ON p.id=e.project_id JOIN clients c ON c.id=p.client_id ORDER BY e.started_at DESC`,
+      `SELECT e.*, p.name project_name, p.color project_color, c.id client_id, c.name client_name FROM time_entries e JOIN projects p ON p.id=e.project_id JOIN clients c ON c.id=p.client_id ORDER BY e.started_at DESC`,
     ),
   ]);
   return NextResponse.json({

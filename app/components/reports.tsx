@@ -44,14 +44,55 @@ export function Reports({ entries }: { entries: Entry[] }) {
   const [preset, setPreset] = useState<Preset>("this-month");
   const [from, setFrom] = useState(initialRange.from);
   const [to, setTo] = useState(initialRange.to);
+  const [clientId, setClientId] = useState("all");
+  const [projectId, setProjectId] = useState("all");
+
+  const clients = useMemo(
+    () =>
+      Array.from(
+        new Map(
+          entries.map((entry) => [
+            entry.client_id,
+            { id: entry.client_id, name: entry.client_name },
+          ]),
+        ).values(),
+      ).sort((a, b) => a.name.localeCompare(b.name, "it")),
+    [entries],
+  );
+
+  const projects = useMemo(
+    () =>
+      Array.from(
+        new Map(
+          entries
+            .filter(
+              (entry) =>
+                clientId === "all" || entry.client_id === Number(clientId),
+            )
+            .map((entry) => [
+              entry.project_id,
+              {
+                id: entry.project_id,
+                name: entry.project_name,
+                clientId: entry.client_id,
+              },
+            ]),
+        ).values(),
+      ).sort((a, b) => a.name.localeCompare(b.name, "it")),
+    [entries, clientId],
+  );
 
   const filtered = useMemo(
     () =>
       entries.filter((entry) => {
         const date = toLocalInput(entry.started_at).slice(0, 10);
-        return date >= from && date <= to;
+        const matchesClient =
+          clientId === "all" || entry.client_id === Number(clientId);
+        const matchesProject =
+          projectId === "all" || entry.project_id === Number(projectId);
+        return date >= from && date <= to && matchesClient && matchesProject;
       }),
-    [entries, from, to],
+    [entries, from, to, clientId, projectId],
   );
 
   const totalMinutes = filtered.reduce(
@@ -79,6 +120,17 @@ export function Reports({ entries }: { entries: Entry[] }) {
   function changeTo(value: string) {
     setPreset("custom");
     setTo(value);
+  }
+
+  function changeClient(value: string) {
+    setClientId(value);
+    if (projectId === "all") return;
+    const selectedProject = entries.find(
+      (entry) => entry.project_id === Number(projectId),
+    );
+    if (value !== "all" && selectedProject?.client_id !== Number(value)) {
+      setProjectId("all");
+    }
   }
 
   function exportCsv() {
@@ -205,6 +257,34 @@ export function Reports({ entries }: { entries: Entry[] }) {
             value={to}
             onChange={(event) => changeTo(event.target.value)}
           />
+        </label>
+        <label>
+          Cliente
+          <select
+            value={clientId}
+            onChange={(event) => changeClient(event.target.value)}
+          >
+            <option value="all">Tutti i clienti</option>
+            {clients.map((client) => (
+              <option key={client.id} value={client.id}>
+                {client.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Progetto
+          <select
+            value={projectId}
+            onChange={(event) => setProjectId(event.target.value)}
+          >
+            <option value="all">Tutti i progetti</option>
+            {projects.map((project) => (
+              <option key={project.id} value={project.id}>
+                {project.name}
+              </option>
+            ))}
+          </select>
         </label>
       </div>
       <div className="summary-grid report-summary">
