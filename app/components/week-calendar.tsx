@@ -90,10 +90,6 @@ export function CalendarView({
   ) {
     event.preventDefault();
     event.stopPropagation();
-    if (event.detail === 2 && mode === "move") {
-      onEdit(entry);
-      return;
-    }
     (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
     const slot = {
       start: new Date(entry.started_at),
@@ -169,6 +165,7 @@ export function CalendarView({
                       layout={
                         layouts.get(entry.id) ?? { column: 0, columns: 1 }
                       }
+                      onEdit={onEdit}
                       onPointerDown={beginDrag}
                       onPointerMove={moveDrag}
                       onPointerUp={finishDrag}
@@ -245,6 +242,7 @@ function CalendarSlot({
   entry,
   preview,
   layout,
+  onEdit,
   onPointerDown,
   onPointerMove,
   onPointerUp,
@@ -252,6 +250,7 @@ function CalendarSlot({
   entry: Entry;
   preview?: SlotPreset;
   layout: SlotLayout;
+  onEdit: (entry: Entry) => void;
   onPointerDown: (
     entry: Entry,
     mode: Drag["mode"],
@@ -283,6 +282,11 @@ function CalendarSlot({
         right: "auto",
       }}
       onPointerDown={(event) => onPointerDown(entry, "move", event)}
+      onDoubleClick={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        onEdit(entry);
+      }}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
     >
