@@ -38,6 +38,11 @@ export async function PATCH(request: NextRequest) {
     if (!Number.isFinite(startedAt.getTime()) || !Number.isFinite(endedAt.getTime()) || endedAt <= startedAt) return NextResponse.json({ error: 'Intervallo non valido' }, { status: 400 });
     await env.DB.prepare('UPDATE time_entries SET started_at=?, ended_at=?, updated_at=? WHERE id=?').bind(startedAt.toISOString(), endedAt.toISOString(), new Date().toISOString(), Number(body.id)).run();
   }
+  else if (body.type === 'entry-details') {
+    const startedAt = new Date(String(body.startedAt)); const endedAt = new Date(String(body.endedAt)); const rate = Math.round(Number(body.hourlyRate) * 100);
+    if (!Number.isFinite(startedAt.getTime()) || !Number.isFinite(endedAt.getTime()) || endedAt <= startedAt || !Number.isFinite(rate)) return NextResponse.json({ error: 'Dati non validi' }, { status: 400 });
+    await env.DB.prepare('UPDATE time_entries SET project_id=?, started_at=?, ended_at=?, description=?, billable=?, hourly_rate_cents=?, rate_source=?, updated_at=? WHERE id=?').bind(Number(body.projectId), startedAt.toISOString(), endedAt.toISOString(), String(body.description || ''), body.billable ? 1 : 0, rate, 'manual', new Date().toISOString(), Number(body.id)).run();
+  }
   else if (body.type === 'archive') { const table = body.entity === 'client' ? 'clients' : 'projects'; await env.DB.prepare(`UPDATE ${table} SET archived=1 WHERE id=?`).bind(Number(body.id)).run(); }
   return GET();
 }
