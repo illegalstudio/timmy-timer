@@ -1,78 +1,323 @@
-'use client';
-import { FormEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useState } from 'react';
+"use client";
 
-type Client = { id:number; name:string; hourly_rate_cents:number|null };
-type Project = { id:number; client_id:number; name:string; color:string; hourly_rate_cents:number|null };
-type Entry = { id:number; project_id:number; started_at:string; ended_at:string; description:string; billable:number; invoiced:number; hourly_rate_cents:number; rate_source:string; project_name:string; project_color:string; client_name:string };
-type Data = { clients:Client[]; projects:Project[]; entries:Entry[] };
-type View = 'registro'|'clienti'|'progetti'|'report';
-const today = () => new Date().toLocaleDateString('sv-SE');
-const money = (c:number) => new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(c/100);
-const minutes = (e:Entry) => Math.max(0,(new Date(e.ended_at).getTime()-new Date(e.started_at).getTime())/60000);
-const duration = (m:number) => `${Math.floor(m/60)}h ${Math.round(m%60).toString().padStart(2,'0')}m`;
-const amount = (e:Entry) => Math.round(minutes(e)*e.hourly_rate_cents/60);
-const localInput = (iso:string) => { const d=new Date(iso); const z=d.getTimezoneOffset(); return new Date(d.getTime()-z*60000).toISOString().slice(0,16); };
+import { useEffect, useMemo, useState } from "react";
+import { Collection } from "./components/collection";
+import { EntryModal } from "./components/entry-modal";
+import { Reports } from "./components/reports";
+import { CalendarPage } from "./components/week-calendar";
+import {
+  entryAmount,
+  entryMinutes,
+  formatDuration,
+  formatMoney,
+  today,
+  toLocalInput,
+} from "./lib/time";
+import type {
+  AppData,
+  Entry,
+  ModalType,
+  Mutate,
+  SlotPreset,
+  View,
+} from "./lib/types";
 
-export default function TempoApp(){
-  const [data,setData]=useState<Data>({clients:[],projects:[],entries:[]}); const [view,setView]=useState<View>('registro'); const [date,setDate]=useState(today()); const [modal,setModal]=useState<null|'entry'|'client'|'project'>(null); const [slotPreset,setSlotPreset]=useState<{start:Date;end:Date}|null>(null); const [editingEntry,setEditingEntry]=useState<Entry|null>(null); const [loading,setLoading]=useState(true); const [error,setError]=useState('');
-  useEffect(()=>{if('serviceWorker' in navigator)void navigator.serviceWorker.register('/sw.js');void fetch('/api/data').then(r=>{if(!r.ok)throw new Error();return r.json()}).then(value=>{setData(value);setError('')}).catch(()=>setError('Impossibile caricare i dati.')).finally(()=>setLoading(false))},[]);
-  const mutate=async(method:string,body?:object,url='/api/data')=>{setError('');const r=await fetch(url,{method,headers:{'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined});if(!r.ok){setError('Operazione non riuscita.');return false}setData(await r.json());return true};
-  const dayEntries=data.entries.filter(e=>localInput(e.started_at).slice(0,10)===date); const dayMinutes=dayEntries.reduce((s,e)=>s+minutes(e),0); const dayAmount=dayEntries.reduce((s,e)=>s+amount(e),0); const uninvoiced=data.entries.filter(e=>e.billable&&!e.invoiced).reduce((s,e)=>s+amount(e),0);
-  const changeDay=(n:number)=>{const d=new Date(`${date}T12:00:00`);d.setDate(d.getDate()+n);setDate(d.toLocaleDateString('sv-SE'))};
-  return <main className="app-shell">
-    <aside className="sidebar"><div className="brand"><span className="brand-mark">T</span><span>Tempo</span></div><nav>{([['registro','Registro'],['clienti','Clienti'],['progetti','Progetti'],['report','Report']] as [View,string][]).map(([key,label])=><button className={view===key?'active':''} key={key} onClick={()=>setView(key)}>{label}</button>)}</nav><div className="sidebar-foot">{new Date().toLocaleDateString('it-IT',{day:'numeric',month:'long',year:'numeric'})}<br/><strong>{duration(dayMinutes)}</strong> registrate</div></aside>
-    <section className="workspace">{error&&<div className="error">{error}</div>}{loading?<div className="loading">Caricamento…</div>:<>
-      {view==='registro'&&<Registro entries={data.entries} date={date} dayMinutes={dayMinutes} dayAmount={dayAmount} uninvoiced={uninvoiced} changeDay={changeDay} setDate={setDate} newEntry={(preset)=>{setEditingEntry(null);setSlotPreset(preset||null);setModal(data.projects.length?'entry':'project')}} editEntry={(entry)=>{setEditingEntry(entry);setSlotPreset({start:new Date(entry.started_at),end:new Date(entry.ended_at)});setModal('entry')}} mutate={mutate}/>}
-      {view==='clienti'&&<Collection title="Clienti" subtitle="Tariffe predefinite e storico dei clienti." button="Nuovo cliente" onAdd={()=>setModal('client')} empty="Non hai ancora creato clienti.">{data.clients.map(c=><article className="collection-row" key={c.id}><div><strong>{c.name}</strong><span>{data.projects.filter(p=>p.client_id===c.id).length} progetti</span></div><b>{c.hourly_rate_cents?`${money(c.hourly_rate_cents)}/ora`:'Nessuna tariffa'}</b></article>)}</Collection>}
-      {view==='progetti'&&<Collection title="Progetti" subtitle="Ogni progetto appartiene a un cliente." button="Nuovo progetto" onAdd={()=>setModal(data.clients.length?'project':'client')} empty="Crea prima un cliente, poi il suo primo progetto.">{data.projects.map(p=><article className="collection-row" key={p.id}><span className="project-chip" style={{background:p.color}}/><div><strong>{p.name}</strong><span>{data.clients.find(c=>c.id===p.client_id)?.name}</span></div><b>{p.hourly_rate_cents?`${money(p.hourly_rate_cents)}/ora`:'Tariffa cliente'}</b></article>)}</Collection>}
-      {view==='report'&&<Reports entries={data.entries}/>}</>}
-    </section>{modal&&<Modal type={modal} data={data} preset={slotPreset} entry={editingEntry} close={()=>{setModal(null);setSlotPreset(null);setEditingEntry(null)}} save={async b=>{const ok=editingEntry?await mutate('PATCH',{...b,type:'entry-details',id:editingEntry.id}):await mutate('POST',b);if(ok){setModal(null);setSlotPreset(null);setEditingEntry(null)}}}/>}
-  </main>
-}
+const EMPTY_DATA: AppData = { clients: [], projects: [], entries: [] };
+const NAVIGATION: Array<{ view: View; label: string }> = [
+  { view: "registro", label: "Registro" },
+  { view: "clienti", label: "Clienti" },
+  { view: "progetti", label: "Progetti" },
+  { view: "report", label: "Report" },
+];
 
-function Registro({entries,date,dayMinutes,dayAmount,uninvoiced,changeDay,setDate,newEntry,editEntry,mutate}:{entries:Entry[];date:string;dayMinutes:number;dayAmount:number;uninvoiced:number;changeDay:(n:number)=>void;setDate:(d:string)=>void;newEntry:(p?:{start:Date;end:Date})=>void;editEntry:(e:Entry)=>void;mutate:(m:string,b?:object,u?:string)=>Promise<boolean>}){
- return <><header className="topbar calendar-top"><div><p className="eyebrow">Calendario settimanale</p><h1>Il tuo tempo</h1></div><div className="calendar-actions"><div className="date-nav"><button onClick={()=>changeDay(-7)}>‹</button><input aria-label="Settimana" type="date" value={date} onChange={e=>setDate(e.target.value)}/><button onClick={()=>setDate(today())}>Oggi</button><button onClick={()=>changeDay(7)}>›</button></div><button className="primary" onClick={()=>newEntry()}>＋ Nuovo slot</button></div></header><div className="summary-strip"><span><b>{duration(dayMinutes)}</b> oggi</span><span><b>{money(dayAmount)}</b> oggi</span><span><b>{money(uninvoiced)}</b> da fatturare</span><small>Trascina per creare · doppio clic per modificare</small></div><WeekCalendar anchor={date} entries={entries} create={newEntry} edit={editEntry} mutate={mutate}/></>
-}
+export default function TempoApp() {
+  const [data, setData] = useState<AppData>(EMPTY_DATA);
+  const [view, setView] = useState<View>("registro");
+  const [date, setDate] = useState(today());
+  const [modal, setModal] = useState<ModalType | null>(null);
+  const [slotPreset, setSlotPreset] = useState<SlotPreset | null>(null);
+  const [editingEntry, setEditingEntry] = useState<Entry | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-const START_HOUR=6, END_HOUR=22, PX_PER_MINUTE=1.05, SNAP=15;
-const snap=(m:number)=>Math.round(m/SNAP)*SNAP;
-const weekStart=(date:string)=>{const d=new Date(`${date}T12:00:00`);d.setDate(d.getDate()-((d.getDay()+6)%7));d.setHours(0,0,0,0);return d};
-function overlapLayouts(entries:Entry[],preview:Record<number,{start:Date;end:Date}>){
- const result=new Map<number,{column:number;columns:number}>();const byDay=new Map<string,Entry[]>();
- entries.forEach(e=>{const key=(preview[e.id]?.start||new Date(e.started_at)).toLocaleDateString('sv-SE');byDay.set(key,[...(byDay.get(key)||[]),e])});
- byDay.forEach(dayEntries=>{const sorted=[...dayEntries].sort((a,b)=>(preview[a.id]?.start||new Date(a.started_at)).getTime()-(preview[b.id]?.start||new Date(b.started_at)).getTime());let cursor=0;
-  while(cursor<sorted.length){const cluster:Entry[]=[sorted[cursor++]];let clusterEnd=(preview[cluster[0].id]?.end||new Date(cluster[0].ended_at)).getTime();while(cursor<sorted.length){const next=sorted[cursor],nextStart=(preview[next.id]?.start||new Date(next.started_at)).getTime();if(nextStart>=clusterEnd)break;cluster.push(next);clusterEnd=Math.max(clusterEnd,(preview[next.id]?.end||new Date(next.ended_at)).getTime());cursor++}
-   const columnEnds:number[]=[];const assigned=new Map<number,number>();cluster.forEach(e=>{const s=(preview[e.id]?.start||new Date(e.started_at)).getTime(),end=(preview[e.id]?.end||new Date(e.ended_at)).getTime();let column=columnEnds.findIndex(value=>value<=s);if(column<0){column=columnEnds.length;columnEnds.push(end)}else columnEnds[column]=end;assigned.set(e.id,column)});cluster.forEach(e=>result.set(e.id,{column:assigned.get(e.id)!,columns:columnEnds.length}));
+  useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      void navigator.serviceWorker.register("/sw.js");
+    }
+    void loadData()
+      .then(setData)
+      .catch(() => setError("Impossibile caricare i dati."))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const mutate: Mutate = async (method, body, url = "/api/data") => {
+    setError("");
+    const response = await fetch(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    if (!response.ok) {
+      setError("Operazione non riuscita.");
+      return false;
+    }
+    setData(await response.json());
+    return true;
+  };
+
+  const totals = useMemo(() => calculateTotals(data, date), [data, date]);
+
+  function openNewEntry(preset?: SlotPreset) {
+    setEditingEntry(null);
+    setSlotPreset(preset ?? null);
+    setModal(data.projects.length ? "entry" : "project");
   }
- });return result;
-}
-function WeekCalendar({anchor,entries,create,edit,mutate}:{anchor:string;entries:Entry[];create:(p:{start:Date;end:Date})=>void;edit:(e:Entry)=>void;mutate:(m:string,b?:object,u?:string)=>Promise<boolean>}){
- const start=weekStart(anchor);const days=Array.from({length:7},(_,i)=>{const d=new Date(start);d.setDate(d.getDate()+i);return d});const [draft,setDraft]=useState<{day:number;a:number;b:number}|null>(null);const [drag,setDrag]=useState<{id:number;mode:'move'|'resize';y:number;start:Date;end:Date}|null>(null);const [preview,setPreview]=useState<Record<number,{start:Date;end:Date}>>({});const height=(END_HOUR-START_HOUR)*60*PX_PER_MINUTE;
- const pointMinutes=(e:ReactPointerEvent<HTMLElement>)=>{const r=e.currentTarget.getBoundingClientRect();return Math.max(0,Math.min((END_HOUR-START_HOUR)*60,snap((e.clientY-r.top)/PX_PER_MINUTE)))};
- const beginCreate=(day:number,e:ReactPointerEvent<HTMLDivElement>)=>{if(e.button!==0)return;e.currentTarget.setPointerCapture(e.pointerId);const m=pointMinutes(e);setDraft({day,a:m,b:m+SNAP})};
- const moveCreate=(e:ReactPointerEvent<HTMLDivElement>)=>{if(draft)setDraft({...draft,b:Math.max(draft.a+SNAP,pointMinutes(e))})};
- const endCreate=()=>{if(!draft)return;const s=new Date(days[draft.day]);s.setMinutes(START_HOUR*60+draft.a);const e=new Date(days[draft.day]);e.setMinutes(START_HOUR*60+draft.b);setDraft(null);create({start:s,end:e})};
- const beginDrag=(entry:Entry,mode:'move'|'resize',e:ReactPointerEvent)=>{e.preventDefault();e.stopPropagation();if(e.detail===2&&mode==='move'){edit(entry);return}(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);setDrag({id:entry.id,mode,y:e.clientY,start:new Date(entry.started_at),end:new Date(entry.ended_at)});setPreview({[entry.id]:{start:new Date(entry.started_at),end:new Date(entry.ended_at)}})};
- const moveDrag=(e:ReactPointerEvent)=>{if(!drag)return;const delta=snap((e.clientY-drag.y)/PX_PER_MINUTE);let s=new Date(drag.start),end=new Date(drag.end);if(drag.mode==='move'){s=new Date(s.getTime()+delta*60000);end=new Date(end.getTime()+delta*60000)}else end=new Date(Math.max(s.getTime()+SNAP*60000,end.getTime()+delta*60000));setPreview({[drag.id]:{start:s,end}})};
- const endDrag=async()=>{if(!drag)return;const p=preview[drag.id];setDrag(null);setPreview({});if(p)await mutate('PATCH',{type:'entry-time',id:drag.id,startedAt:p.start.toISOString(),endedAt:p.end.toISOString()})};
- const visible=entries.filter(e=>{const t=preview[e.id]?.start||new Date(e.started_at);return t>=start&&t<new Date(start.getTime()+7*86400000)});const layouts=overlapLayouts(visible,preview);
- return <div className="week-panel"><div className="week-scroll"><div className="week-header"><div className="time-gutter"/>{days.map(d=><div className={`day-head ${d.toLocaleDateString('sv-SE')===today()?'today':''}`} key={d.toISOString()}><span>{d.toLocaleDateString('it-IT',{weekday:'short'})}</span><b>{d.getDate()}</b></div>)}</div><div className="week-body" style={{height}}><div className="time-axis">{Array.from({length:END_HOUR-START_HOUR+1},(_,i)=><span key={i} style={{top:i*60*PX_PER_MINUTE}}>{String(START_HOUR+i).padStart(2,'0')}:00</span>)}</div><div className="day-columns">{days.map((day,di)=><div className="day-column" key={day.toISOString()} onPointerDown={e=>beginCreate(di,e)} onPointerMove={moveCreate} onPointerUp={endCreate}>{Array.from({length:(END_HOUR-START_HOUR)*2},(_,i)=><i className="half-line" key={i} style={{top:i*30*PX_PER_MINUTE}}/>)}{draft?.day===di&&<div className="draft-slot" style={{top:draft.a*PX_PER_MINUTE,height:(draft.b-draft.a)*PX_PER_MINUTE}}>Nuovo slot</div>}{visible.filter(e=>(preview[e.id]?.start||new Date(e.started_at)).toLocaleDateString('sv-SE')===day.toLocaleDateString('sv-SE')).map(e=>{const p=preview[e.id]||{start:new Date(e.started_at),end:new Date(e.ended_at)},layout=layouts.get(e.id)||{column:0,columns:1};const top=(p.start.getHours()*60+p.start.getMinutes()-START_HOUR*60)*PX_PER_MINUTE;const h=Math.max(24,(p.end.getTime()-p.start.getTime())/60000*PX_PER_MINUTE);return <article className="calendar-slot" key={e.id} style={{top,height:h,background:e.project_color,left:`calc(${layout.column*100/layout.columns}% + 3px)`,width:`calc(${100/layout.columns}% - 6px)`,right:'auto'}} onPointerDown={x=>beginDrag(e,'move',x)} onPointerMove={moveDrag} onPointerUp={endDrag}><strong>{e.project_name}</strong><span>{p.start.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})}–{p.end.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})}</span><i className="resize-handle" onPointerDown={x=>beginDrag(e,'resize',x)} onPointerMove={moveDrag} onPointerUp={endDrag}/></article>})}</div>)}</div></div></div></div>
-}
-function Collection({title,subtitle,button,onAdd,empty,children}:{title:string;subtitle:string;button:string;onAdd:()=>void;empty:string;children:React.ReactNode}){return <><header className="topbar"><div><p className="eyebrow">Anagrafica</p><h1>{title}</h1><p className="page-subtitle">{subtitle}</p></div><button className="primary" onClick={onAdd}>＋ {button}</button></header><div className="panel collection">{children||<div className="empty"><strong>{empty}</strong></div>}</div></>}
 
-function Reports({entries}:{entries:Entry[]}){const [from,setFrom]=useState(()=>{const d=new Date();d.setDate(1);return d.toLocaleDateString('sv-SE')});const [to,setTo]=useState(today());const filtered=useMemo(()=>entries.filter(e=>localInput(e.started_at).slice(0,10)>=from&&localInput(e.started_at).slice(0,10)<=to),[entries,from,to]);const totalM=filtered.reduce((s,e)=>s+minutes(e),0),totalC=filtered.reduce((s,e)=>s+amount(e),0);
- const csv=()=>{const rows=[['Data','Inizio','Fine','Durata','Cliente','Progetto','Descrizione','Fatturabile','Fatturato','Tariffa','Importo'],...filtered.map(e=>[e.started_at.slice(0,10),localInput(e.started_at).slice(11),localInput(e.ended_at).slice(11),duration(minutes(e)),e.client_name,e.project_name,e.description||'',e.billable?'Sì':'No',e.invoiced?'Sì':'No',(e.hourly_rate_cents/100).toFixed(2),(amount(e)/100).toFixed(2)])];download('\ufeff'+rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(';')).join('\n'),`tempo_${from}_${to}.csv`,'text/csv;charset=utf-8')};
- const pdf=async()=>{const {jsPDF}=await import('jspdf');const doc=new jsPDF();doc.setFontSize(20);doc.text('Report attività',16,20);doc.setFontSize(10);doc.text(`${new Date(from+'T12:00').toLocaleDateString('it-IT')} – ${new Date(to+'T12:00').toLocaleDateString('it-IT')}`,16,28);let y=40;filtered.forEach(e=>{if(y>275){doc.addPage();y=20}doc.setFontSize(10);doc.text(`${e.started_at.slice(0,10)}  ${e.client_name} / ${e.project_name}`,16,y);doc.text(duration(minutes(e)),150,y);doc.text(money(amount(e)),177,y,{align:'right'});doc.setFontSize(8);doc.setTextColor(110);doc.text(e.description||'—',16,y+5);doc.setTextColor(0);y+=13});doc.line(16,y,194,y);doc.setFontSize(12);doc.text(`Totale: ${duration(totalM)}  ·  ${money(totalC)}`,16,y+9);doc.save(`tempo_${from}_${to}.pdf`)};
- return <><header className="topbar"><div><p className="eyebrow">Esportazioni</p><h1>Report</h1><p className="page-subtitle">Riepiloga ed esporta le attività registrate.</p></div><div className="export-actions"><button onClick={csv}>CSV</button><button className="primary" onClick={pdf}>PDF</button></div></header><div className="report-filters"><label>Dal<input type="date" value={from} onChange={e=>setFrom(e.target.value)}/></label><label>Al<input type="date" value={to} onChange={e=>setTo(e.target.value)}/></label></div><div className="summary-grid report-summary"><div className="summary-card"><span>Tempo</span><strong>{duration(totalM)}</strong></div><div className="summary-card"><span>Importo</span><strong>{money(totalC)}</strong></div><div className="summary-card accent"><span>Attività</span><strong>{filtered.length}</strong></div></div><div className="panel report-table">{filtered.map(e=><div className="report-row" key={e.id}><span>{new Date(e.started_at).toLocaleDateString('it-IT')}</span><div><strong>{e.project_name}</strong><small>{e.client_name}</small></div><b>{duration(minutes(e))}</b><b>{money(amount(e))}</b></div>)}{!filtered.length&&<div className="empty">Nessuna attività nell’intervallo.</div>}</div></>}
-function download(content:string,name:string,type:string){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
+  function openEntry(entry: Entry) {
+    setEditingEntry(entry);
+    setSlotPreset({
+      start: new Date(entry.started_at),
+      end: new Date(entry.ended_at),
+    });
+    setModal("entry");
+  }
 
-function Modal({type,data,preset,entry,close,save}:{type:'entry'|'client'|'project';data:Data;preset:{start:Date;end:Date}|null;entry:Entry|null;close:()=>void;save:(b:object)=>Promise<void>}){
- const [busy,setBusy]=useState(false);const submit=async(e:FormEvent<HTMLFormElement>)=>{e.preventDefault();setBusy(true);const f=new FormData(e.currentTarget);const o=Object.fromEntries(f.entries());if(type==='entry'){o.startedAt=new Date(String(o.startedAt)).toISOString();o.endedAt=new Date(String(o.endedAt)).toISOString()}await save({type,...o,billable:type==='entry'?f.has('billable'):undefined});setBusy(false)};const start=preset?.start||new Date();if(!preset)start.setMinutes(0,0,0);const end=preset?.end||new Date(start.getTime()+3600000);
- return <div className="modal-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget)close()}}><form className="modal" onSubmit={submit}>
-  <div className="modal-head"><div><p className="eyebrow">{entry?'Modifica attività':'Nuovo elemento'}</p><h2>{type==='entry'?'Slot di tempo':type==='client'?'Cliente':'Progetto'}</h2></div><button type="button" onClick={close}>×</button></div>
-  {type==='client'&&<><label>Nome<input name="name" required autoFocus placeholder="es. Acme S.r.l."/></label><label>Tariffa predefinita €/ora<input name="hourlyRate" type="number" min="0" step="0.01" placeholder="65,00"/></label></>}
-  {type==='project'&&<><label>Cliente<select name="clientId" required>{data.clients.map(c=><option value={c.id} key={c.id}>{c.name}</option>)}</select></label><label>Nome progetto<input name="name" required autoFocus placeholder="es. Sito corporate"/></label><div className="form-grid"><label>Colore<input name="color" type="color" defaultValue="#5b5bd6"/></label><label>Tariffa specifica €/ora<input name="hourlyRate" type="number" min="0" step="0.01" placeholder="Eredita dal cliente"/></label></div></>}
-  {type==='entry'&&<><label>Progetto<select name="projectId" required defaultValue={entry?.project_id}>{data.projects.map(p=><option value={p.id} key={p.id}>{data.clients.find(c=>c.id===p.client_id)?.name} — {p.name}</option>)}</select></label><div className="form-grid"><label>Inizio<input name="startedAt" type="datetime-local" required defaultValue={localInput(start.toISOString())}/></label><label>Fine<input name="endedAt" type="datetime-local" required defaultValue={localInput(end.toISOString())}/></label></div><label>Descrizione<input name="description" defaultValue={entry?.description||''} placeholder="Cosa hai fatto?"/></label><label>Tariffa €/ora<input name="hourlyRate" type="number" min="0" step="0.01" required={!!entry} defaultValue={entry?entry.hourly_rate_cents/100:undefined} placeholder="Usa quella del progetto o cliente"/></label><label className="check"><input type="checkbox" name="billable" defaultChecked={entry?!!entry.billable:true}/> Attività fatturabile</label></>}
-  <div className="modal-actions"><button type="button" onClick={close}>Annulla</button><button className="primary" disabled={busy}>{busy?'Salvataggio…':entry?'Salva modifiche':'Salva'}</button></div>
- </form></div>
+  function closeModal() {
+    setModal(null);
+    setSlotPreset(null);
+    setEditingEntry(null);
+  }
+
+  async function saveModal(body: object) {
+    const saved = editingEntry
+      ? await mutate("PATCH", {
+          ...body,
+          type: "entry-details",
+          id: editingEntry.id,
+        })
+      : await mutate("POST", body);
+    if (saved) closeModal();
+  }
+
+  return (
+    <main className="app-shell">
+      <Sidebar
+        currentView={view}
+        dayMinutes={totals.dayMinutes}
+        onNavigate={setView}
+      />
+      <section className="workspace">
+        {error && <div className="error">{error}</div>}
+        {loading ? (
+          <div className="loading">Caricamento…</div>
+        ) : (
+          <AppView
+            view={view}
+            data={data}
+            date={date}
+            totals={totals}
+            setDate={setDate}
+            openNewEntry={openNewEntry}
+            openEntry={openEntry}
+            setModal={setModal}
+            mutate={mutate}
+          />
+        )}
+      </section>
+      {modal && (
+        <EntryModal
+          type={modal}
+          data={data}
+          preset={slotPreset}
+          entry={editingEntry}
+          onClose={closeModal}
+          onSave={saveModal}
+        />
+      )}
+    </main>
+  );
+}
+
+type Totals = ReturnType<typeof calculateTotals>;
+
+function AppView({
+  view,
+  data,
+  date,
+  totals,
+  setDate,
+  openNewEntry,
+  openEntry,
+  setModal,
+  mutate,
+}: {
+  view: View;
+  data: AppData;
+  date: string;
+  totals: Totals;
+  setDate: (value: string) => void;
+  openNewEntry: (preset?: SlotPreset) => void;
+  openEntry: (entry: Entry) => void;
+  setModal: (type: ModalType) => void;
+  mutate: Mutate;
+}) {
+  if (view === "registro") {
+    return (
+      <CalendarPage
+        entries={data.entries}
+        date={date}
+        dayMinutes={totals.dayMinutes}
+        dayAmount={totals.dayAmount}
+        uninvoiced={totals.uninvoiced}
+        onDateChange={setDate}
+        onCreate={openNewEntry}
+        onEdit={openEntry}
+        mutate={mutate}
+      />
+    );
+  }
+  if (view === "clienti") {
+    return <ClientsView data={data} onAdd={() => setModal("client")} />;
+  }
+  if (view === "progetti") {
+    return (
+      <ProjectsView
+        data={data}
+        onAdd={() => setModal(data.clients.length ? "project" : "client")}
+      />
+    );
+  }
+  return <Reports entries={data.entries} />;
+}
+
+function Sidebar({
+  currentView,
+  dayMinutes,
+  onNavigate,
+}: {
+  currentView: View;
+  dayMinutes: number;
+  onNavigate: (view: View) => void;
+}) {
+  return (
+    <aside className="sidebar">
+      <div className="brand">
+        <span className="brand-mark">T</span>
+        <span>Tempo</span>
+      </div>
+      <nav>
+        {NAVIGATION.map((item) => (
+          <button
+            className={currentView === item.view ? "active" : ""}
+            key={item.view}
+            onClick={() => onNavigate(item.view)}
+          >
+            {item.label}
+          </button>
+        ))}
+      </nav>
+      <div className="sidebar-foot">
+        {new Date().toLocaleDateString("it-IT", {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        })}
+        <br />
+        <strong>{formatDuration(dayMinutes)}</strong> registrate
+      </div>
+    </aside>
+  );
+}
+
+function ClientsView({ data, onAdd }: { data: AppData; onAdd: () => void }) {
+  return (
+    <Collection
+      title="Clienti"
+      subtitle="Tariffe predefinite e storico dei clienti."
+      button="Nuovo cliente"
+      empty="Non hai ancora creato clienti."
+      onAdd={onAdd}
+    >
+      {data.clients.map((client) => (
+        <article className="collection-row" key={client.id}>
+          <div>
+            <strong>{client.name}</strong>
+            <span>
+              {
+                data.projects.filter(
+                  (project) => project.client_id === client.id,
+                ).length
+              }{" "}
+              progetti
+            </span>
+          </div>
+          <b>
+            {client.hourly_rate_cents
+              ? `${formatMoney(client.hourly_rate_cents)}/ora`
+              : "Nessuna tariffa"}
+          </b>
+        </article>
+      ))}
+    </Collection>
+  );
+}
+
+function ProjectsView({ data, onAdd }: { data: AppData; onAdd: () => void }) {
+  return (
+    <Collection
+      title="Progetti"
+      subtitle="Ogni progetto appartiene a un cliente."
+      button="Nuovo progetto"
+      empty="Crea prima un cliente, poi il suo primo progetto."
+      onAdd={onAdd}
+    >
+      {data.projects.map((project) => (
+        <article className="collection-row" key={project.id}>
+          <span
+            className="project-chip"
+            style={{ background: project.color }}
+          />
+          <div>
+            <strong>{project.name}</strong>
+            <span>
+              {
+                data.clients.find((client) => client.id === project.client_id)
+                  ?.name
+              }
+            </span>
+          </div>
+          <b>
+            {project.hourly_rate_cents
+              ? `${formatMoney(project.hourly_rate_cents)}/ora`
+              : "Tariffa cliente"}
+          </b>
+        </article>
+      ))}
+    </Collection>
+  );
+}
+
+function calculateTotals(data: AppData, date: string) {
+  const dayEntries = data.entries.filter(
+    (entry) => toLocalInput(entry.started_at).slice(0, 10) === date,
+  );
+  return {
+    dayMinutes: dayEntries.reduce(
+      (total, entry) => total + entryMinutes(entry),
+      0,
+    ),
+    dayAmount: dayEntries.reduce(
+      (total, entry) => total + entryAmount(entry),
+      0,
+    ),
+    uninvoiced: data.entries
+      .filter((entry) => entry.billable && !entry.invoiced)
+      .reduce((total, entry) => total + entryAmount(entry), 0),
+  };
+}
+
+async function loadData(): Promise<AppData> {
+  const response = await fetch("/api/data");
+  if (!response.ok) throw new Error("Unable to load data");
+  return response.json();
 }

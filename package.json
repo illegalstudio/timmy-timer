@@ -10,6 +10,8 @@
     "build": "vinext build",
     "start": "vinext start",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
@@ -34,6 +36,7 @@
     "eslint-config-next": "16.2.6",
     "node-addon-api": "8.5.0",
     "node-gyp": "11.4.2",
+    "prettier": "^3.9.6",
     "react-server-dom-webpack": "19.2.6",
     "tailwindcss": "4.2.1",
     "typescript": "5.9.3",
