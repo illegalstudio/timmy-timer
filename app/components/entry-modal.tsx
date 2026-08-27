@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { toLocalInput } from "../lib/time";
 import type { AppData, Entry, ModalType, SlotPreset } from "../lib/types";
 
@@ -24,6 +24,17 @@ export function EntryModal({
   const [busy, setBusy] = useState(false);
   const start = preset?.start ?? roundedCurrentHour();
   const end = preset?.end ?? new Date(start.getTime() + 3_600_000);
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      onClose();
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
