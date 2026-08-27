@@ -6,14 +6,44 @@ import {
   entryMinutes,
   formatDuration,
   formatMoney,
-  today,
   toLocalInput,
 } from "../lib/time";
 import type { Entry } from "../lib/types";
 
+type Preset =
+  | "today"
+  | "yesterday"
+  | "this-week"
+  | "last-week"
+  | "last-7-days"
+  | "this-month"
+  | "last-month"
+  | "last-30-days"
+  | "this-quarter"
+  | "this-year"
+  | "last-year"
+  | "custom";
+
+const PRESETS: Array<{ value: Preset; label: string }> = [
+  { value: "today", label: "Oggi" },
+  { value: "yesterday", label: "Ieri" },
+  { value: "this-week", label: "Questa settimana" },
+  { value: "last-week", label: "Scorsa settimana" },
+  { value: "last-7-days", label: "Ultimi 7 giorni" },
+  { value: "this-month", label: "Questo mese" },
+  { value: "last-month", label: "Scorso mese" },
+  { value: "last-30-days", label: "Ultimi 30 giorni" },
+  { value: "this-quarter", label: "Questo trimestre" },
+  { value: "this-year", label: "Quest’anno" },
+  { value: "last-year", label: "Scorso anno" },
+  { value: "custom", label: "Intervallo personalizzato" },
+];
+
 export function Reports({ entries }: { entries: Entry[] }) {
-  const [from, setFrom] = useState(firstDayOfMonth);
-  const [to, setTo] = useState(today());
+  const initialRange = getPresetRange("this-month");
+  const [preset, setPreset] = useState<Preset>("this-month");
+  const [from, setFrom] = useState(initialRange.from);
+  const [to, setTo] = useState(initialRange.to);
 
   const filtered = useMemo(
     () =>
@@ -32,6 +62,24 @@ export function Reports({ entries }: { entries: Entry[] }) {
     (total, entry) => total + entryAmount(entry),
     0,
   );
+
+  function selectPreset(value: Preset) {
+    setPreset(value);
+    if (value === "custom") return;
+    const range = getPresetRange(value);
+    setFrom(range.from);
+    setTo(range.to);
+  }
+
+  function changeFrom(value: string) {
+    setPreset("custom");
+    setFrom(value);
+  }
+
+  function changeTo(value: string) {
+    setPreset("custom");
+    setTo(value);
+  }
 
   function exportCsv() {
     const header = [
@@ -130,11 +178,24 @@ export function Reports({ entries }: { entries: Entry[] }) {
       </header>
       <div className="report-filters">
         <label>
+          Periodo
+          <select
+            value={preset}
+            onChange={(event) => selectPreset(event.target.value as Preset)}
+          >
+            {PRESETS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
           Dal
           <input
             type="date"
             value={from}
-            onChange={(e) => setFrom(e.target.value)}
+            onChange={(event) => changeFrom(event.target.value)}
           />
         </label>
         <label>
@@ -142,7 +203,7 @@ export function Reports({ entries }: { entries: Entry[] }) {
           <input
             type="date"
             value={to}
-            onChange={(e) => setTo(e.target.value)}
+            onChange={(event) => changeTo(event.target.value)}
           />
         </label>
       </div>
@@ -190,9 +251,65 @@ function Summary({
   );
 }
 
-function firstDayOfMonth() {
-  const date = new Date();
-  date.setDate(1);
+function getPresetRange(preset: Exclude<Preset, "custom">) {
+  const now = startOfDay(new Date());
+  let from = new Date(now);
+  let to = new Date(now);
+
+  if (preset === "yesterday") {
+    from.setDate(from.getDate() - 1);
+    to = new Date(from);
+  } else if (preset === "this-week") {
+    from = startOfWeek(now);
+    to = endOfWeek(now);
+  } else if (preset === "last-week") {
+    to = startOfWeek(now);
+    to.setDate(to.getDate() - 1);
+    from = startOfWeek(to);
+  } else if (preset === "last-7-days") {
+    from.setDate(from.getDate() - 6);
+  } else if (preset === "this-month") {
+    from = new Date(now.getFullYear(), now.getMonth(), 1);
+    to = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  } else if (preset === "last-month") {
+    from = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    to = new Date(now.getFullYear(), now.getMonth(), 0);
+  } else if (preset === "last-30-days") {
+    from.setDate(from.getDate() - 29);
+  } else if (preset === "this-quarter") {
+    const quarterStart = Math.floor(now.getMonth() / 3) * 3;
+    from = new Date(now.getFullYear(), quarterStart, 1);
+    to = new Date(now.getFullYear(), quarterStart + 3, 0);
+  } else if (preset === "this-year") {
+    from = new Date(now.getFullYear(), 0, 1);
+    to = new Date(now.getFullYear(), 11, 31);
+  } else if (preset === "last-year") {
+    from = new Date(now.getFullYear() - 1, 0, 1);
+    to = new Date(now.getFullYear() - 1, 11, 31);
+  }
+
+  return { from: dateValue(from), to: dateValue(to) };
+}
+
+function startOfDay(date: Date) {
+  const value = new Date(date);
+  value.setHours(0, 0, 0, 0);
+  return value;
+}
+
+function startOfWeek(date: Date) {
+  const value = startOfDay(date);
+  value.setDate(value.getDate() - ((value.getDay() + 6) % 7));
+  return value;
+}
+
+function endOfWeek(date: Date) {
+  const value = startOfWeek(date);
+  value.setDate(value.getDate() + 6);
+  return value;
+}
+
+function dateValue(date: Date) {
   return date.toLocaleDateString("sv-SE");
 }
 

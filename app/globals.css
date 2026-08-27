@@ -317,7 +317,8 @@ button {
   color: var(--muted);
   font-size: 12px;
 }
-.report-filters input {
+.report-filters input,
+.report-filters select {
   border: 1px solid var(--line);
   background: white;
   padding: 10px;
