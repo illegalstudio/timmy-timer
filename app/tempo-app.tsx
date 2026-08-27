@@ -15,9 +15,11 @@ import {
 } from "./lib/time";
 import type {
   AppData,
+  Client,
   Entry,
   ModalType,
   Mutate,
+  Project,
   SlotPreset,
   View,
 } from "./lib/types";
@@ -37,6 +39,8 @@ export default function TempoApp() {
   const [modal, setModal] = useState<ModalType | null>(null);
   const [slotPreset, setSlotPreset] = useState<SlotPreset | null>(null);
   const [editingEntry, setEditingEntry] = useState<Entry | null>(null);
+  const [editingClient, setEditingClient] = useState<Client | null>(null);
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -82,20 +86,47 @@ export default function TempoApp() {
     setModal("entry");
   }
 
+  function openClient(client: Client) {
+    setEditingClient(client);
+    setModal("client");
+  }
+
+  function openProject(project: Project) {
+    setEditingProject(project);
+    setModal("project");
+  }
+
   function closeModal() {
     setModal(null);
     setSlotPreset(null);
     setEditingEntry(null);
+    setEditingClient(null);
+    setEditingProject(null);
   }
 
   async function saveModal(body: object) {
-    const saved = editingEntry
-      ? await mutate("PATCH", {
-          ...body,
-          type: "entry-details",
-          id: editingEntry.id,
-        })
-      : await mutate("POST", body);
+    let saved: boolean;
+    if (editingEntry) {
+      saved = await mutate("PATCH", {
+        ...body,
+        type: "entry-details",
+        id: editingEntry.id,
+      });
+    } else if (editingClient) {
+      saved = await mutate("PATCH", {
+        ...body,
+        type: "client-details",
+        id: editingClient.id,
+      });
+    } else if (editingProject) {
+      saved = await mutate("PATCH", {
+        ...body,
+        type: "project-details",
+        id: editingProject.id,
+      });
+    } else {
+      saved = await mutate("POST", body);
+    }
     if (saved) closeModal();
   }
 
@@ -119,6 +150,8 @@ export default function TempoApp() {
             setDate={setDate}
             openNewEntry={openNewEntry}
             openEntry={openEntry}
+            openClient={openClient}
+            openProject={openProject}
             setModal={setModal}
             mutate={mutate}
           />
@@ -130,6 +163,8 @@ export default function TempoApp() {
           data={data}
           preset={slotPreset}
           entry={editingEntry}
+          client={editingClient}
+          project={editingProject}
           onClose={closeModal}
           onSave={saveModal}
         />
@@ -148,6 +183,8 @@ function AppView({
   setDate,
   openNewEntry,
   openEntry,
+  openClient,
+  openProject,
   setModal,
   mutate,
 }: {
@@ -158,6 +195,8 @@ function AppView({
   setDate: (value: string) => void;
   openNewEntry: (preset?: SlotPreset) => void;
   openEntry: (entry: Entry) => void;
+  openClient: (client: Client) => void;
+  openProject: (project: Project) => void;
   setModal: (type: ModalType) => void;
   mutate: Mutate;
 }) {
@@ -177,13 +216,20 @@ function AppView({
     );
   }
   if (view === "clienti") {
-    return <ClientsView data={data} onAdd={() => setModal("client")} />;
+    return (
+      <ClientsView
+        data={data}
+        onAdd={() => setModal("client")}
+        onEdit={openClient}
+      />
+    );
   }
   if (view === "progetti") {
     return (
       <ProjectsView
         data={data}
         onAdd={() => setModal(data.clients.length ? "project" : "client")}
+        onEdit={openProject}
       />
     );
   }
@@ -229,7 +275,15 @@ function Sidebar({
   );
 }
 
-function ClientsView({ data, onAdd }: { data: AppData; onAdd: () => void }) {
+function ClientsView({
+  data,
+  onAdd,
+  onEdit,
+}: {
+  data: AppData;
+  onAdd: () => void;
+  onEdit: (client: Client) => void;
+}) {
   return (
     <Collection
       title="Clienti"
@@ -239,7 +293,11 @@ function ClientsView({ data, onAdd }: { data: AppData; onAdd: () => void }) {
       onAdd={onAdd}
     >
       {data.clients.map((client) => (
-        <article className="collection-row" key={client.id}>
+        <article
+          className="collection-row client-row"
+          key={client.id}
+          onDoubleClick={() => onEdit(client)}
+        >
           <div>
             <strong>{client.name}</strong>
             <span>
@@ -251,18 +309,31 @@ function ClientsView({ data, onAdd }: { data: AppData; onAdd: () => void }) {
               progetti
             </span>
           </div>
-          <b>
-            {client.hourly_rate_cents
-              ? `${formatMoney(client.hourly_rate_cents)}/ora`
-              : "Nessuna tariffa"}
-          </b>
+          <div className="collection-actions">
+            <b>
+              {client.hourly_rate_cents
+                ? `${formatMoney(client.hourly_rate_cents)}/ora`
+                : "Nessuna tariffa"}
+            </b>
+            <button className="collection-edit" onClick={() => onEdit(client)}>
+              Modifica
+            </button>
+          </div>
         </article>
       ))}
     </Collection>
   );
 }
 
-function ProjectsView({ data, onAdd }: { data: AppData; onAdd: () => void }) {
+function ProjectsView({
+  data,
+  onAdd,
+  onEdit,
+}: {
+  data: AppData;
+  onAdd: () => void;
+  onEdit: (project: Project) => void;
+}) {
   return (
     <Collection
       title="Progetti"
@@ -272,7 +343,11 @@ function ProjectsView({ data, onAdd }: { data: AppData; onAdd: () => void }) {
       onAdd={onAdd}
     >
       {data.projects.map((project) => (
-        <article className="collection-row" key={project.id}>
+        <article
+          className="collection-row"
+          key={project.id}
+          onDoubleClick={() => onEdit(project)}
+        >
           <span
             className="project-chip"
             style={{ background: project.color }}
@@ -286,11 +361,16 @@ function ProjectsView({ data, onAdd }: { data: AppData; onAdd: () => void }) {
               }
             </span>
           </div>
-          <b>
-            {project.hourly_rate_cents
-              ? `${formatMoney(project.hourly_rate_cents)}/ora`
-              : "Tariffa cliente"}
-          </b>
+          <div className="collection-actions">
+            <b>
+              {project.hourly_rate_cents
+                ? `${formatMoney(project.hourly_rate_cents)}/ora`
+                : "Tariffa cliente"}
+            </b>
+            <button className="collection-edit" onClick={() => onEdit(project)}>
+              Modifica
+            </button>
+          </div>
         </article>
       ))}
     </Collection>

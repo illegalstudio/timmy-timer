@@ -167,6 +167,30 @@ export async function PATCH(request: NextRequest) {
         Number(body.id),
       )
       .run();
+  } else if (body.type === "client-details") {
+    const rate = Number(body.hourlyRate)
+      ? Math.round(Number(body.hourlyRate) * 100)
+      : null;
+    await env.DB.prepare(
+      "UPDATE clients SET name=?, hourly_rate_cents=? WHERE id=?",
+    )
+      .bind(String(body.name).trim(), rate, Number(body.id))
+      .run();
+  } else if (body.type === "project-details") {
+    const rate = Number(body.hourlyRate)
+      ? Math.round(Number(body.hourlyRate) * 100)
+      : null;
+    await env.DB.prepare(
+      "UPDATE projects SET client_id=?, name=?, color=?, hourly_rate_cents=? WHERE id=?",
+    )
+      .bind(
+        Number(body.clientId),
+        String(body.name).trim(),
+        String(body.color || "#5b5bd6"),
+        rate,
+        Number(body.id),
+      )
+      .run();
   } else if (body.type === "archive") {
     const table = body.entity === "client" ? "clients" : "projects";
     await env.DB.prepare(`UPDATE ${table} SET archived=1 WHERE id=?`)

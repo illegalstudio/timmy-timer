@@ -2,13 +2,22 @@
 
 import { type FormEvent, useEffect, useState } from "react";
 import { toLocalInput } from "../lib/time";
-import type { AppData, Entry, ModalType, SlotPreset } from "../lib/types";
+import type {
+  AppData,
+  Client,
+  Entry,
+  ModalType,
+  Project,
+  SlotPreset,
+} from "../lib/types";
 
 type EntryModalProps = {
   type: ModalType;
   data: AppData;
   preset: SlotPreset | null;
   entry: Entry | null;
+  client: Client | null;
+  project: Project | null;
   onClose: () => void;
   onSave: (body: object) => Promise<void>;
 };
@@ -18,12 +27,15 @@ export function EntryModal({
   data,
   preset,
   entry,
+  client,
+  project,
   onClose,
   onSave,
 }: EntryModalProps) {
   const [busy, setBusy] = useState(false);
   const start = preset?.start ?? roundedCurrentHour();
   const end = preset?.end ?? new Date(start.getTime() + 3_600_000);
+  const isEditing = Boolean(entry || client || project);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -67,7 +79,7 @@ export function EntryModal({
         <div className="modal-head">
           <div>
             <p className="eyebrow">
-              {entry ? "Modifica attività" : "Nuovo elemento"}
+              {isEditing ? "Modifica elemento" : "Nuovo elemento"}
             </p>
             <h2>{modalTitle(type)}</h2>
           </div>
@@ -76,8 +88,8 @@ export function EntryModal({
           </button>
         </div>
 
-        {type === "client" && <ClientFields />}
-        {type === "project" && <ProjectFields data={data} />}
+        {type === "client" && <ClientFields client={client} />}
+        {type === "project" && <ProjectFields data={data} project={project} />}
         {type === "entry" && (
           <TimeEntryFields data={data} entry={entry} start={start} end={end} />
         )}
@@ -87,7 +99,7 @@ export function EntryModal({
             Annulla
           </button>
           <button className="primary" disabled={busy}>
-            {busy ? "Salvataggio…" : entry ? "Salva modifiche" : "Salva"}
+            {busy ? "Salvataggio…" : isEditing ? "Salva modifiche" : "Salva"}
           </button>
         </div>
       </form>
@@ -95,27 +107,49 @@ export function EntryModal({
   );
 }
 
-function ClientFields() {
+function ClientFields({ client }: { client: Client | null }) {
   return (
     <>
       <label>
         Nome
-        <input name="name" required autoFocus placeholder="es. Acme S.r.l." />
+        <input
+          name="name"
+          required
+          autoFocus
+          defaultValue={client?.name}
+          placeholder="es. Acme S.r.l."
+        />
       </label>
       <label>
         Tariffa predefinita €/ora
-        <input name="hourlyRate" type="number" min="0" step="0.01" />
+        <input
+          name="hourlyRate"
+          type="number"
+          min="0"
+          step="0.01"
+          defaultValue={
+            client?.hourly_rate_cents
+              ? client.hourly_rate_cents / 100
+              : undefined
+          }
+        />
       </label>
     </>
   );
 }
 
-function ProjectFields({ data }: { data: AppData }) {
+function ProjectFields({
+  data,
+  project,
+}: {
+  data: AppData;
+  project: Project | null;
+}) {
   return (
     <>
       <label>
         Cliente
-        <select name="clientId" required>
+        <select name="clientId" required defaultValue={project?.client_id}>
           {data.clients.map((client) => (
             <option value={client.id} key={client.id}>
               {client.name}
@@ -125,16 +159,30 @@ function ProjectFields({ data }: { data: AppData }) {
       </label>
       <label>
         Nome progetto
-        <input name="name" required autoFocus />
+        <input name="name" required autoFocus defaultValue={project?.name} />
       </label>
       <div className="form-grid">
         <label>
           Colore
-          <input name="color" type="color" defaultValue="#5b5bd6" />
+          <input
+            name="color"
+            type="color"
+            defaultValue={project?.color ?? "#5b5bd6"}
+          />
         </label>
         <label>
           Tariffa specifica €/ora
-          <input name="hourlyRate" type="number" min="0" step="0.01" />
+          <input
+            name="hourlyRate"
+            type="number"
+            min="0"
+            step="0.01"
+            defaultValue={
+              project?.hourly_rate_cents
+                ? project.hourly_rate_cents / 100
+                : undefined
+            }
+          />
         </label>
       </div>
     </>
