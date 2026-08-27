@@ -33,6 +33,11 @@ export async function POST(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   await ensureSchema(); const body = await request.json() as Record<string, unknown>;
   if (body.type === 'entry') await env.DB.prepare('UPDATE time_entries SET invoiced=?, updated_at=? WHERE id=?').bind(body.invoiced ? 1 : 0, new Date().toISOString(), Number(body.id)).run();
+  else if (body.type === 'entry-time') {
+    const startedAt = new Date(String(body.startedAt)); const endedAt = new Date(String(body.endedAt));
+    if (!Number.isFinite(startedAt.getTime()) || !Number.isFinite(endedAt.getTime()) || endedAt <= startedAt) return NextResponse.json({ error: 'Intervallo non valido' }, { status: 400 });
+    await env.DB.prepare('UPDATE time_entries SET started_at=?, ended_at=?, updated_at=? WHERE id=?').bind(startedAt.toISOString(), endedAt.toISOString(), new Date().toISOString(), Number(body.id)).run();
+  }
   else if (body.type === 'archive') { const table = body.entity === 'client' ? 'clients' : 'projects'; await env.DB.prepare(`UPDATE ${table} SET archived=1 WHERE id=?`).bind(Number(body.id)).run(); }
   return GET();
 }
