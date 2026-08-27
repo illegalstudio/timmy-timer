@@ -122,7 +122,6 @@ export function CalendarView({
     if (!drag) return;
     const slot = preview[drag.id];
     setDrag(null);
-    setPreview({});
     if (slot) {
       await mutate("PATCH", {
         type: "entry-time",
@@ -131,6 +130,7 @@ export function CalendarView({
         endedAt: slot.end.toISOString(),
       });
     }
+    setPreview({});
   }
 
   return (
