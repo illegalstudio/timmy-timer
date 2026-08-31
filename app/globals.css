@@ -518,19 +518,12 @@ svg {
   place-items: center;
   width: 40px;
   height: 40px;
-  color: var(--ink) !important;
+  color: var(--ink);
   font-size: 14px !important;
   font-weight: 800;
   background: var(--butter);
   border: 1px solid rgba(45, 32, 56, 0.12);
   border-radius: 14px;
-}
-
-.project-chip {
-  width: 13px;
-  height: 40px;
-  border: 0;
-  border-radius: 999px;
 }
 
 .collection-row > .collection-actions {
@@ -1124,11 +1117,15 @@ svg {
 }
 
 .smart-select-marker {
-  flex: 0 0 auto;
-  width: 9px;
-  height: 28px;
+  display: grid;
+  flex: 0 0 36px;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  font-size: 12px;
+  font-weight: 800;
   border: 1px solid rgba(45, 32, 56, 0.08);
-  border-radius: 999px;
+  border-radius: 12px;
 }
 
 .smart-select-popover {
@@ -1257,7 +1254,10 @@ svg {
 }
 
 .smart-select-option .smart-select-marker {
-  height: 26px;
+  flex-basis: 34px;
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
 }
 
 .smart-select-empty {

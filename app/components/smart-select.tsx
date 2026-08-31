@@ -240,9 +240,14 @@ function OptionMarker({ option }: { option?: SmartSelectOption }) {
   return (
     <span
       className="smart-select-marker"
-      style={{ background: option.color }}
+      style={{
+        background: option.color,
+        color: readableTextColor(option.color),
+      }}
       aria-hidden="true"
-    />
+    >
+      {option.label.trim().slice(0, 1).toUpperCase() || "P"}
+    </span>
   );
 }
 
@@ -251,4 +256,15 @@ function normalize(value: string) {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLocaleLowerCase("it");
+}
+
+function readableTextColor(color: string) {
+  const hex = color.replace("#", "");
+  if (!/^[0-9a-f]{6}$/i.test(hex)) return "#ffffff";
+  const [red, green, blue] = [0, 2, 4].map((index) =>
+    Number.parseInt(hex.slice(index, index + 2), 16),
+  );
+  return red * 0.299 + green * 0.587 + blue * 0.114 > 165
+    ? "#2d2038"
+    : "#ffffff";
 }

@@ -517,8 +517,14 @@ function ProjectsView({
         >
           <span
             className="project-chip"
-            style={{ background: project.color }}
-          />
+            style={{
+              background: project.color,
+              color: readableTextColor(project.color),
+            }}
+            aria-hidden="true"
+          >
+            {project.name.trim().slice(0, 1).toUpperCase() || "P"}
+          </span>
           <div>
             <strong>{project.name}</strong>
             <span>
@@ -596,4 +602,15 @@ function creationMessage(type: ModalType | null) {
   if (type === "client") return "Cliente aggiunto. Primo passo fatto!";
   if (type === "project") return "Progetto pronto. Ora si parte!";
   return "Slot segnato. Bel ritmo!";
+}
+
+function readableTextColor(color: string) {
+  const hex = color.replace("#", "");
+  if (!/^[0-9a-f]{6}$/i.test(hex)) return "#ffffff";
+  const [red, green, blue] = [0, 2, 4].map((index) =>
+    Number.parseInt(hex.slice(index, index + 2), 16),
+  );
+  return red * 0.299 + green * 0.587 + blue * 0.114 > 165
+    ? "#2d2038"
+    : "#ffffff";
 }

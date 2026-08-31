@@ -78,6 +78,7 @@ export function Reports({ entries }: { entries: Entry[] }) {
                 id: entry.project_id,
                 name: entry.project_name,
                 clientId: entry.client_id,
+                color: entry.project_color,
               },
             ]),
         ).values(),
@@ -294,6 +295,7 @@ export function Reports({ entries }: { entries: Entry[] }) {
                 label: project.name,
                 hint: clients.find((client) => client.id === project.clientId)
                   ?.name,
+                color: project.color,
               })),
             ]}
           />
