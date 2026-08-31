@@ -64,6 +64,10 @@ export function SmartSelect({
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
+  const [popoverPosition, setPopoverPosition] = useState({
+    left: 0,
+    width: 290,
+  });
 
   const selected = options.find((option) => option.value === selectedValue);
   const filteredOptions = useMemo(() => {
@@ -99,6 +103,17 @@ export function SmartSelect({
     return () => window.removeEventListener("pointerdown", handleOutside);
   }, [open]);
 
+  useEffect(() => {
+    if (!open) return;
+
+    function handleResize() {
+      setPopoverPosition(calculatePopoverPosition(rootRef.current));
+    }
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [open]);
+
   function choose(option: SmartSelectOption) {
     if (!isControlled) setInternalValue(option.value);
     onValueChange?.(option.value);
@@ -113,6 +128,7 @@ export function SmartSelect({
 
   function openMenu() {
     setQuery("");
+    setPopoverPosition(calculatePopoverPosition(rootRef.current));
     setActiveIndex(
       Math.max(
         0,
@@ -177,7 +193,13 @@ export function SmartSelect({
         </button>
 
         {open && (
-          <div className="smart-select-popover">
+          <div
+            className="smart-select-popover"
+            style={{
+              left: popoverPosition.left,
+              width: popoverPosition.width,
+            }}
+          >
             <div className="smart-select-search">
               <Icon name="search" />
               <input
@@ -267,4 +289,23 @@ function readableTextColor(color: string) {
   return red * 0.299 + green * 0.587 + blue * 0.114 > 165
     ? "#2d2038"
     : "#ffffff";
+}
+
+function calculatePopoverPosition(element: HTMLElement | null) {
+  const viewportPadding = 12;
+  const fallback = { left: 0, width: 290 };
+  if (!element) return fallback;
+
+  const bounds = element.getBoundingClientRect();
+  const availableWidth = Math.max(0, window.innerWidth - viewportPadding * 2);
+  const width = Math.min(Math.max(bounds.width, 290), availableWidth);
+  const viewportLeft = Math.max(
+    viewportPadding,
+    Math.min(bounds.left, window.innerWidth - viewportPadding - width),
+  );
+
+  return {
+    left: viewportLeft - bounds.left,
+    width,
+  };
 }

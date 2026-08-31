@@ -1131,10 +1131,10 @@ svg {
 .smart-select-popover {
   position: absolute;
   top: calc(100% + 7px);
-  right: 0;
-  left: 0;
+  right: auto;
   z-index: 70;
-  min-width: min(290px, calc(100vw - 48px));
+  max-width: calc(100vw - 24px);
+  min-width: 0;
   padding: 6px;
   color: var(--ink);
   background: var(--surface);
