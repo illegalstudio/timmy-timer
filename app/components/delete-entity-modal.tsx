@@ -1,6 +1,7 @@
 "use client";
 
 import { type FormEvent, useEffect, useMemo, useState } from "react";
+import { useI18n } from "../i18n/i18n-provider";
 import type { AppData, Client, Project } from "../lib/types";
 import { Icon } from "./icon";
 import { SmartSelect } from "./smart-select";
@@ -24,6 +25,7 @@ export function DeleteEntityModal({
   onClose,
   onConfirm,
 }: DeleteEntityModalProps) {
+  const { t } = useI18n();
   const alternatives = useMemo(
     () =>
       target.type === "client"
@@ -81,9 +83,6 @@ export function DeleteEntityModal({
     setBusy(false);
   }
 
-  const entityLabel = target.type === "client" ? "cliente" : "progetto";
-  const destinationLabel = target.type === "client" ? "cliente" : "progetto";
-
   return (
     <div
       className="modal-backdrop"
@@ -105,11 +104,14 @@ export function DeleteEntityModal({
               <Icon name="trash" />
             </span>
             <div>
-              <p className="eyebrow">Facciamo ordine</p>
-              <h2 id="delete-entity-title">Elimina {target.item.name}</h2>
+              <p className="eyebrow">{t("delete.eyebrow")}</p>
+              <h2 id="delete-entity-title">
+                {t("delete.title", { name: target.item.name })}
+              </h2>
               <p>
-                Stai eliminando un {entityLabel}. Scegli cosa fare delle
-                attività collegate.
+                {target.type === "client"
+                  ? t("delete.description.client")
+                  : t("delete.description.project")}
               </p>
             </div>
           </div>
@@ -118,7 +120,7 @@ export function DeleteEntityModal({
             type="button"
             onClick={onClose}
             disabled={busy}
-            aria-label="Chiudi"
+            aria-label={t("modal.close")}
           >
             <Icon name="close" />
           </button>
@@ -132,7 +134,7 @@ export function DeleteEntityModal({
 
         {hasDependencies ? (
           <fieldset className="delete-options">
-            <legend>Cosa vuoi fare?</legend>
+            <legend>{t("delete.question")}</legend>
             {alternatives.length > 0 && (
               <label className={strategy === "reassign" ? "selected" : ""}>
                 <input
@@ -148,11 +150,11 @@ export function DeleteEntityModal({
                   />
                 </span>
                 <span>
-                  <strong>Sposta e conserva</strong>
+                  <strong>{t("delete.moveKeep")}</strong>
                   <small>
                     {target.type === "client"
-                      ? "I progetti e tutti i loro slot passeranno a un altro cliente."
-                      : "Tutti gli slot passeranno a un altro progetto."}
+                      ? t("delete.move.clientDescription")
+                      : t("delete.move.projectDescription")}
                   </small>
                 </span>
               </label>
@@ -171,11 +173,11 @@ export function DeleteEntityModal({
                 <Icon name="trash" />
               </span>
               <span>
-                <strong>Elimina tutto</strong>
+                <strong>{t("delete.deleteAll")}</strong>
                 <small>
                   {target.type === "client"
-                    ? "Cliente, progetti e slot collegati saranno eliminati definitivamente."
-                    : "Progetto e slot collegati saranno eliminati definitivamente."}
+                    ? t("delete.all.clientDescription")
+                    : t("delete.all.projectDescription")}
                 </small>
               </span>
             </label>
@@ -184,8 +186,12 @@ export function DeleteEntityModal({
           <div className="no-dependencies">
             <Icon name="sparkles" />
             <span>
-              <strong>Nessuna attività da sistemare.</strong>
-              <small>Puoi eliminare questo {entityLabel} in sicurezza.</small>
+              <strong>{t("delete.noActivities")}</strong>
+              <small>
+                {target.type === "client"
+                  ? t("delete.safe.client")
+                  : t("delete.safe.project")}
+              </small>
             </span>
           </div>
         )}
@@ -193,11 +199,19 @@ export function DeleteEntityModal({
         {strategy === "reassign" && (
           <SmartSelect
             className="delete-destination"
-            label={`Sposta nel ${destinationLabel}`}
+            label={
+              target.type === "client"
+                ? t("delete.moveTo.client")
+                : t("delete.moveTo.project")
+            }
             value={destinationId}
             onValueChange={setDestinationId}
             required
-            searchPlaceholder={`Cerca ${destinationLabel}…`}
+            searchPlaceholder={
+              target.type === "client"
+                ? t("delete.search.client")
+                : t("delete.search.project")
+            }
             options={alternatives.map((alternative) => {
               const clientName =
                 target.type === "project"
@@ -222,7 +236,7 @@ export function DeleteEntityModal({
 
         <div className="modal-actions">
           <button type="button" onClick={onClose} disabled={busy}>
-            Annulla
+            {t("modal.cancel")}
           </button>
           <button className="delete-confirm-button" disabled={busy}>
             <Icon
@@ -235,10 +249,14 @@ export function DeleteEntityModal({
               }
             />
             {busy
-              ? "Operazione in corso…"
+              ? t("delete.inProgress")
               : strategy === "reassign"
-                ? `Sposta ed elimina ${entityLabel}`
-                : `Elimina ${entityLabel}`}
+                ? target.type === "client"
+                  ? t("delete.moveAndDelete.client")
+                  : t("delete.moveAndDelete.project")
+                : target.type === "client"
+                  ? t("delete.confirm.client")
+                  : t("delete.confirm.project")}
           </button>
         </div>
       </form>
@@ -255,19 +273,23 @@ function DependencySummary({
   projectCount: number;
   entryCount: number;
 }) {
+  const { t } = useI18n();
+
   return (
     <div className="dependency-summary">
       {type === "client" && (
         <span>
           <Icon name="projects" />
           <strong>{projectCount}</strong>
-          {projectCount === 1 ? "progetto" : "progetti"}
+          {projectCount === 1
+            ? t("delete.projects.one")
+            : t("delete.projects.many")}
         </span>
       )}
       <span>
         <Icon name="clock" />
         <strong>{entryCount}</strong>
-        {entryCount === 1 ? "slot" : "slot"}
+        {entryCount === 1 ? t("delete.entries.one") : t("delete.entries.many")}
       </span>
     </div>
   );

@@ -9,6 +9,7 @@ import {
   useState,
 } from "react";
 import { Icon } from "./icon";
+import { useI18n } from "../i18n/i18n-provider";
 
 export type SmartSelectOption = {
   value: string;
@@ -39,12 +40,16 @@ export function SmartSelect({
   value,
   defaultValue,
   onValueChange,
-  placeholder = "Seleziona un’opzione",
-  searchPlaceholder = "Cerca…",
-  emptyText = "Nessun risultato",
+  placeholder,
+  searchPlaceholder,
+  emptyText,
   required = false,
   className = "",
 }: SmartSelectProps) {
+  const { locale, t } = useI18n();
+  const resolvedPlaceholder = placeholder ?? t("select.placeholder");
+  const resolvedSearchPlaceholder = searchPlaceholder ?? t("select.search");
+  const resolvedEmptyText = emptyText ?? t("select.noResults");
   const id = useId();
   const rootRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -71,14 +76,15 @@ export function SmartSelect({
 
   const selected = options.find((option) => option.value === selectedValue);
   const filteredOptions = useMemo(() => {
-    const normalizedQuery = normalize(query.trim());
+    const normalizedQuery = normalize(query.trim(), locale);
     if (!normalizedQuery) return options;
     return options.filter((option) =>
       normalize(
         `${option.label} ${option.hint ?? ""} ${option.keywords ?? ""}`,
+        locale,
       ).includes(normalizedQuery),
     );
-  }, [options, query]);
+  }, [locale, options, query]);
 
   useEffect(() => {
     if (!open) return;
@@ -186,7 +192,7 @@ export function SmartSelect({
         >
           <OptionMarker option={selected} />
           <span className="smart-select-value" id={`${id}-value`}>
-            <strong>{selected?.label ?? placeholder}</strong>
+            <strong>{selected?.label ?? resolvedPlaceholder}</strong>
             {selected?.hint && <small>{selected.hint}</small>}
           </span>
           <Icon className="smart-select-chevron" name="chevron-down" />
@@ -210,8 +216,8 @@ export function SmartSelect({
                   setActiveIndex(0);
                 }}
                 onKeyDown={handleSearchKeyDown}
-                placeholder={searchPlaceholder}
-                aria-label={searchPlaceholder}
+                placeholder={resolvedSearchPlaceholder}
+                aria-label={resolvedSearchPlaceholder}
               />
             </div>
             <div
@@ -244,8 +250,8 @@ export function SmartSelect({
                 <div className="smart-select-empty">
                   <Icon name="search" />
                   <span>
-                    <strong>{emptyText}</strong>
-                    <small>Prova con un termine diverso.</small>
+                    <strong>{resolvedEmptyText}</strong>
+                    <small>{t("select.tryDifferent")}</small>
                   </span>
                 </div>
               )}
@@ -273,11 +279,11 @@ function OptionMarker({ option }: { option?: SmartSelectOption }) {
   );
 }
 
-function normalize(value: string) {
+function normalize(value: string, locale: string) {
   return value
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
-    .toLocaleLowerCase("it");
+    .toLocaleLowerCase(locale);
 }
 
 function readableTextColor(color: string) {

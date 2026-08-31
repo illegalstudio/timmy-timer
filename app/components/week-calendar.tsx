@@ -6,6 +6,7 @@ import {
   useEffect,
   useState,
 } from "react";
+import { useI18n } from "../i18n/i18n-provider";
 import { Icon } from "./icon";
 import { Timmy } from "./timmy";
 import { formatDuration, formatMoney, today } from "../lib/time";
@@ -279,6 +280,8 @@ export function CalendarView({
 }
 
 function CalendarHeader({ days }: { days: Date[] }) {
+  const { localeTag } = useI18n();
+
   return (
     <div className="week-header">
       <div className="time-gutter" />
@@ -287,7 +290,7 @@ function CalendarHeader({ days }: { days: Date[] }) {
           className={`day-head ${day.toLocaleDateString("sv-SE") === today() ? "today" : ""}`}
           key={day.toISOString()}
         >
-          <span>{day.toLocaleDateString("it-IT", { weekday: "short" })}</span>
+          <span>{day.toLocaleDateString(localeTag, { weekday: "short" })}</span>
           <b>{day.getDate()}</b>
         </div>
       ))}
@@ -322,6 +325,8 @@ function GridLines() {
 }
 
 function DraftSlot({ draft }: { draft: { start: number; end: number } }) {
+  const { t } = useI18n();
+
   return (
     <div
       className="draft-slot"
@@ -330,7 +335,7 @@ function DraftSlot({ draft }: { draft: { start: number; end: number } }) {
         height: (draft.end - draft.start) * PIXELS_PER_MINUTE,
       }}
     >
-      Nuovo slot
+      {t("calendar.draft")}
     </div>
   );
 }
@@ -358,6 +363,7 @@ function CalendarSlot({
   onPointerUp: () => void;
   onContextMenu: (entry: Entry, event: ReactMouseEvent) => void;
 }) {
+  const { localeTag } = useI18n();
   const slot = preview ?? {
     start: new Date(entry.started_at),
     end: new Date(entry.ended_at),
@@ -393,12 +399,12 @@ function CalendarSlot({
     >
       <strong>{entry.project_name}</strong>
       <span>
-        {slot.start.toLocaleTimeString("it-IT", {
+        {slot.start.toLocaleTimeString(localeTag, {
           hour: "2-digit",
           minute: "2-digit",
         })}
         –
-        {slot.end.toLocaleTimeString("it-IT", {
+        {slot.end.toLocaleTimeString(localeTag, {
           hour: "2-digit",
           minute: "2-digit",
         })}
@@ -428,12 +434,16 @@ function EntryContextMenu({
   onCancelDelete: () => void;
   onDelete: () => void;
 }) {
+  const { t } = useI18n();
+
   return (
     <div
       className="entry-context-menu"
       style={{ left: menu.x, top: menu.y }}
       role="menu"
-      aria-label={`Azioni per ${menu.entry.project_name}`}
+      aria-label={t("calendar.contextAria", {
+        name: menu.entry.project_name,
+      })}
       onPointerDown={(event) => event.stopPropagation()}
     >
       <div className="context-entry-head">
@@ -445,11 +455,11 @@ function EntryContextMenu({
       </div>
       {menu.confirmDelete ? (
         <div className="context-confirm">
-          <strong>Eliminare questo slot?</strong>
-          <span>L’azione non può essere annullata.</span>
+          <strong>{t("calendar.deleteQuestion")}</strong>
+          <span>{t("calendar.deleteWarning")}</span>
           <div>
             <button type="button" onClick={onCancelDelete} disabled={deleting}>
-              Annulla
+              {t("modal.cancel")}
             </button>
             <button
               className="context-delete-confirm"
@@ -457,7 +467,7 @@ function EntryContextMenu({
               onClick={onDelete}
               disabled={deleting}
             >
-              {deleting ? "Elimino…" : "Elimina"}
+              {deleting ? t("calendar.deleting") : t("calendar.delete")}
             </button>
           </div>
         </div>
@@ -465,7 +475,7 @@ function EntryContextMenu({
         <div className="context-actions">
           <button type="button" role="menuitem" onClick={onEdit}>
             <Icon name="pencil" />
-            Modifica
+            {t("calendar.edit")}
           </button>
           <button
             className="danger"
@@ -474,7 +484,7 @@ function EntryContextMenu({
             onClick={onRequestDelete}
           >
             <Icon name="trash" />
-            Elimina
+            {t("calendar.delete")}
           </button>
         </div>
       )}
@@ -610,39 +620,43 @@ export function CalendarPage({
   onEdit: (entry: Entry) => void;
   mutate: Mutate;
 }) {
+  const { localeTag, t } = useI18n();
+
   return (
     <>
       <header className="topbar calendar-top">
         <div>
-          <p className="eyebrow">Agenda settimanale</p>
-          <h1>La tua settimana</h1>
-          <p className="page-subtitle">{formatWeekRange(date)}</p>
+          <p className="eyebrow">{t("calendar.eyebrow")}</p>
+          <h1>{t("calendar.title")}</h1>
+          <p className="page-subtitle">{formatWeekRange(date, localeTag)}</p>
         </div>
         <div className="calendar-actions">
           <div className="date-nav">
             <button
               onClick={() => onDateChange(changeByDays(date, -7))}
-              aria-label="Settimana precedente"
+              aria-label={t("calendar.previousWeek")}
             >
               <Icon name="chevron-left" />
             </button>
             <input
-              aria-label="Settimana"
+              aria-label={t("calendar.week")}
               type="date"
               value={date}
               onChange={(event) => onDateChange(event.target.value)}
             />
-            <button onClick={() => onDateChange(today())}>Oggi</button>
+            <button onClick={() => onDateChange(today())}>
+              {t("calendar.today")}
+            </button>
             <button
               onClick={() => onDateChange(changeByDays(date, 7))}
-              aria-label="Settimana successiva"
+              aria-label={t("calendar.nextWeek")}
             >
               <Icon name="chevron-right" />
             </button>
           </div>
           <button className="primary" onClick={() => onCreate()}>
             <Icon name="plus" />
-            Nuovo slot
+            {t("calendar.newEntry")}
           </button>
         </div>
       </header>
@@ -656,7 +670,7 @@ export function CalendarPage({
                 <Icon name="clock" />
               </span>
               <span>
-                <small>Tempo oggi</small>
+                <small>{t("calendar.todayTime")}</small>
                 <b>{formatDuration(dayMinutes)}</b>
               </span>
             </div>
@@ -665,8 +679,8 @@ export function CalendarPage({
                 <Icon name="coins" />
               </span>
               <span>
-                <small>Valore oggi</small>
-                <b>{formatMoney(dayAmount)}</b>
+                <small>{t("calendar.todayValue")}</small>
+                <b>{formatMoney(dayAmount, localeTag)}</b>
               </span>
             </div>
             <div className="summary-item">
@@ -674,13 +688,11 @@ export function CalendarPage({
                 <Icon name="receipt" />
               </span>
               <span>
-                <small>Da fatturare</small>
-                <b>{formatMoney(uninvoiced)}</b>
+                <small>{t("calendar.uninvoiced")}</small>
+                <b>{formatMoney(uninvoiced, localeTag)}</b>
               </span>
             </div>
-            <small className="calendar-hint">
-              Trascina per creare · clic destro per le azioni
-            </small>
+            <small className="calendar-hint">{t("calendar.hint")}</small>
           </div>
           <CalendarView
             anchor={date}
@@ -702,36 +714,37 @@ function WelcomePanel({
   setupStage: "client" | "project";
   onCreate: () => void;
 }) {
+  const { t } = useI18n();
   const needsClient = setupStage === "client";
   return (
     <section className="welcome-panel">
       <div className="welcome-copy">
         <span className="welcome-badge">
           <Icon name="sparkles" />
-          Piacere, sono Timmy
+          {t("onboarding.badge")}
         </span>
-        <h2>Facciamo spazio al tempo che conta.</h2>
+        <h2>{t("onboarding.title")}</h2>
         <p>
           {needsClient
-            ? "Inizia aggiungendo il tuo primo cliente. Poi creeremo insieme un progetto e il primo slot di lavoro."
-            : "Ottimo, il cliente c’è. Ora dagli un progetto: poi la tua agenda sarà pronta per partire."}
+            ? t("onboarding.clientDescription")
+            : t("onboarding.projectDescription")}
         </p>
-        <div className="setup-steps" aria-label="Configurazione iniziale">
+        <div className="setup-steps" aria-label={t("onboarding.aria")}>
           <span className={needsClient ? "current" : "done"}>
-            <b>{needsClient ? "1" : "✓"}</b> Cliente
+            <b>{needsClient ? "1" : "✓"}</b> {t("onboarding.client")}
           </span>
           <i />
           <span className={!needsClient ? "current" : ""}>
-            <b>2</b> Progetto
+            <b>2</b> {t("onboarding.project")}
           </span>
           <i />
           <span>
-            <b>3</b> Primo slot
+            <b>3</b> {t("onboarding.firstEntry")}
           </span>
         </div>
         <button className="primary welcome-action" onClick={onCreate}>
           <Icon name="plus" />
-          {needsClient ? "Aggiungi il primo cliente" : "Crea il primo progetto"}
+          {needsClient ? t("onboarding.addClient") : t("onboarding.addProject")}
         </button>
       </div>
       <div className="welcome-art" aria-hidden="true">
@@ -749,15 +762,15 @@ function changeByDays(value: string, days: number) {
   return date.toLocaleDateString("sv-SE");
 }
 
-function formatWeekRange(value: string) {
+function formatWeekRange(value: string, locale: string) {
   const start = getWeekStart(value);
   const end = new Date(start);
   end.setDate(end.getDate() + 6);
-  const startLabel = start.toLocaleDateString("it-IT", {
+  const startLabel = start.toLocaleDateString(locale, {
     day: "numeric",
     month: start.getMonth() === end.getMonth() ? undefined : "short",
   });
-  const endLabel = end.toLocaleDateString("it-IT", {
+  const endLabel = end.toLocaleDateString(locale, {
     day: "numeric",
     month: "long",
     year: "numeric",

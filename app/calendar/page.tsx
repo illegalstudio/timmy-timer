@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import TimmyTimer from "../tempo-app";
 
 export const metadata: Metadata = {
-  title: "Agenda | Timmy Timer",
-  description: "Organizza e registra le attività della tua settimana.",
+  title: "Calendar | Timmy Timer",
+  description: "Organize and track the activities in your week.",
 };
 
 export default function CalendarPage() {

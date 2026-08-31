@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useI18n } from "../i18n/i18n-provider";
 import { EmptyState } from "./empty-state";
 import { Icon, type IconName } from "./icon";
 import { SmartSelect } from "./smart-select";
@@ -12,6 +13,7 @@ import {
   toLocalInput,
 } from "../lib/time";
 import type { Entry } from "../lib/types";
+import type { MessageKey } from "../i18n/types";
 
 type Preset =
   | "today"
@@ -27,22 +29,23 @@ type Preset =
   | "last-year"
   | "custom";
 
-const PRESETS: Array<{ value: Preset; label: string }> = [
-  { value: "today", label: "Oggi" },
-  { value: "yesterday", label: "Ieri" },
-  { value: "this-week", label: "Questa settimana" },
-  { value: "last-week", label: "Scorsa settimana" },
-  { value: "last-7-days", label: "Ultimi 7 giorni" },
-  { value: "this-month", label: "Questo mese" },
-  { value: "last-month", label: "Scorso mese" },
-  { value: "last-30-days", label: "Ultimi 30 giorni" },
-  { value: "this-quarter", label: "Questo trimestre" },
-  { value: "this-year", label: "Quest’anno" },
-  { value: "last-year", label: "Scorso anno" },
-  { value: "custom", label: "Intervallo personalizzato" },
+const PRESETS: Array<{ value: Preset; labelKey: MessageKey }> = [
+  { value: "today", labelKey: "reports.preset.today" },
+  { value: "yesterday", labelKey: "reports.preset.yesterday" },
+  { value: "this-week", labelKey: "reports.preset.thisWeek" },
+  { value: "last-week", labelKey: "reports.preset.lastWeek" },
+  { value: "last-7-days", labelKey: "reports.preset.last7Days" },
+  { value: "this-month", labelKey: "reports.preset.thisMonth" },
+  { value: "last-month", labelKey: "reports.preset.lastMonth" },
+  { value: "last-30-days", labelKey: "reports.preset.last30Days" },
+  { value: "this-quarter", labelKey: "reports.preset.thisQuarter" },
+  { value: "this-year", labelKey: "reports.preset.thisYear" },
+  { value: "last-year", labelKey: "reports.preset.lastYear" },
+  { value: "custom", labelKey: "reports.preset.custom" },
 ];
 
 export function Reports({ entries }: { entries: Entry[] }) {
+  const { localeTag, t } = useI18n();
   const initialRange = getPresetRange("this-month");
   const [preset, setPreset] = useState<Preset>("this-month");
   const [from, setFrom] = useState(initialRange.from);
@@ -59,8 +62,8 @@ export function Reports({ entries }: { entries: Entry[] }) {
             { id: entry.client_id, name: entry.client_name },
           ]),
         ).values(),
-      ).sort((a, b) => a.name.localeCompare(b.name, "it")),
-    [entries],
+      ).sort((a, b) => a.name.localeCompare(b.name, localeTag)),
+    [entries, localeTag],
   );
 
   const projects = useMemo(
@@ -82,8 +85,8 @@ export function Reports({ entries }: { entries: Entry[] }) {
               },
             ]),
         ).values(),
-      ).sort((a, b) => a.name.localeCompare(b.name, "it")),
-    [entries, clientId],
+      ).sort((a, b) => a.name.localeCompare(b.name, localeTag)),
+    [entries, clientId, localeTag],
   );
 
   const filtered = useMemo(
@@ -139,17 +142,17 @@ export function Reports({ entries }: { entries: Entry[] }) {
 
   function exportCsv() {
     const header = [
-      "Data",
-      "Inizio",
-      "Fine",
-      "Durata",
-      "Cliente",
-      "Progetto",
-      "Descrizione",
-      "Fatturabile",
-      "Fatturato",
-      "Tariffa",
-      "Importo",
+      t("reports.csv.date"),
+      t("reports.csv.start"),
+      t("reports.csv.end"),
+      t("reports.csv.duration"),
+      t("reports.csv.client"),
+      t("reports.csv.project"),
+      t("reports.csv.description"),
+      t("reports.csv.billable"),
+      t("reports.csv.invoiced"),
+      t("reports.csv.rate"),
+      t("reports.csv.amount"),
     ];
     const rows = filtered.map((entry) => [
       toLocalInput(entry.started_at).slice(0, 10),
@@ -159,10 +162,10 @@ export function Reports({ entries }: { entries: Entry[] }) {
       entry.client_name,
       entry.project_name,
       entry.description || "",
-      entry.billable ? "Sì" : "No",
-      entry.invoiced ? "Sì" : "No",
-      (entry.hourly_rate_cents / 100).toFixed(2),
-      (entryAmount(entry) / 100).toFixed(2),
+      entry.billable ? t("reports.yes") : t("reports.no"),
+      entry.invoiced ? t("reports.yes") : t("reports.no"),
+      formatCsvNumber(entry.hourly_rate_cents / 100, localeTag),
+      formatCsvNumber(entryAmount(entry) / 100, localeTag),
     ]);
     const csv = [header, ...rows]
       .map((row) => row.map(escapeCsvCell).join(";"))
@@ -178,9 +181,13 @@ export function Reports({ entries }: { entries: Entry[] }) {
     const { jsPDF } = await import("jspdf");
     const document = new jsPDF();
     document.setFontSize(20);
-    document.text("Timmy Timer · Report attività", 16, 20);
+    document.text(t("reports.pdf.title"), 16, 20);
     document.setFontSize(10);
-    document.text(`${formatDate(from)} – ${formatDate(to)}`, 16, 28);
+    document.text(
+      `${formatDate(from, localeTag)} – ${formatDate(to, localeTag)}`,
+      16,
+      28,
+    );
 
     let y = 40;
     for (const entry of filtered) {
@@ -190,12 +197,12 @@ export function Reports({ entries }: { entries: Entry[] }) {
       }
       document.setFontSize(10);
       document.text(
-        `${formatDate(toLocalInput(entry.started_at).slice(0, 10))}  ${entry.client_name} / ${entry.project_name}`,
+        `${formatDate(toLocalInput(entry.started_at).slice(0, 10), localeTag)}  ${entry.client_name} / ${entry.project_name}`,
         16,
         y,
       );
       document.text(formatDuration(entryMinutes(entry)), 150, y);
-      document.text(formatMoney(entryAmount(entry)), 177, y, {
+      document.text(formatMoney(entryAmount(entry), localeTag), 177, y, {
         align: "right",
       });
       document.setFontSize(8);
@@ -208,7 +215,10 @@ export function Reports({ entries }: { entries: Entry[] }) {
     document.line(16, y, 194, y);
     document.setFontSize(12);
     document.text(
-      `Totale: ${formatDuration(totalMinutes)} · ${formatMoney(totalCents)}`,
+      t("reports.pdf.total", {
+        duration: formatDuration(totalMinutes),
+        amount: formatMoney(totalCents, localeTag),
+      }),
       16,
       y + 9,
     );
@@ -219,11 +229,9 @@ export function Reports({ entries }: { entries: Entry[] }) {
     <>
       <header className="topbar">
         <div>
-          <p className="eyebrow">Numeri che parlano</p>
-          <h1>Il tuo tempo, in sintesi</h1>
-          <p className="page-subtitle">
-            Filtra le attività e porta i risultati dove ti servono.
-          </p>
+          <p className="eyebrow">{t("reports.eyebrow")}</p>
+          <h1>{t("reports.title")}</h1>
+          <p className="page-subtitle">{t("reports.subtitle")}</p>
         </div>
         <div className="export-actions">
           <button className="button-secondary" onClick={exportCsv}>
@@ -242,20 +250,23 @@ export function Reports({ entries }: { entries: Entry[] }) {
             <Icon name="reports" />
           </span>
           <div>
-            <strong>Costruisci il tuo report</strong>
-            <small>Combina periodo, cliente e progetto.</small>
+            <strong>{t("reports.filterTitle")}</strong>
+            <small>{t("reports.filterDescription")}</small>
           </div>
         </div>
         <div className="report-filters">
           <SmartSelect
-            label="Periodo"
+            label={t("reports.period")}
             value={preset}
             onValueChange={(value) => selectPreset(value as Preset)}
-            searchPlaceholder="Cerca periodo…"
-            options={PRESETS}
+            searchPlaceholder={t("reports.searchPeriod")}
+            options={PRESETS.map((item) => ({
+              value: item.value,
+              label: t(item.labelKey),
+            }))}
           />
           <label>
-            Dal
+            {t("reports.from")}
             <input
               type="date"
               value={from}
@@ -263,7 +274,7 @@ export function Reports({ entries }: { entries: Entry[] }) {
             />
           </label>
           <label>
-            Al
+            {t("reports.to")}
             <input
               type="date"
               value={to}
@@ -271,12 +282,12 @@ export function Reports({ entries }: { entries: Entry[] }) {
             />
           </label>
           <SmartSelect
-            label="Cliente"
+            label={t("reports.client")}
             value={clientId}
             onValueChange={changeClient}
-            searchPlaceholder="Cerca cliente…"
+            searchPlaceholder={t("reports.searchClient")}
             options={[
-              { value: "all", label: "Tutti i clienti" },
+              { value: "all", label: t("reports.allClients") },
               ...clients.map((client) => ({
                 value: String(client.id),
                 label: client.name,
@@ -284,12 +295,12 @@ export function Reports({ entries }: { entries: Entry[] }) {
             ]}
           />
           <SmartSelect
-            label="Progetto"
+            label={t("reports.project")}
             value={projectId}
             onValueChange={setProjectId}
-            searchPlaceholder="Cerca progetto…"
+            searchPlaceholder={t("reports.searchProject")}
             options={[
-              { value: "all", label: "Tutti i progetti" },
+              { value: "all", label: t("reports.allProjects") },
               ...projects.map((project) => ({
                 value: String(project.id),
                 label: project.name,
@@ -304,17 +315,17 @@ export function Reports({ entries }: { entries: Entry[] }) {
       <div className="summary-grid report-summary">
         <Summary
           icon="clock"
-          label="Tempo totale"
+          label={t("reports.totalTime")}
           value={formatDuration(totalMinutes)}
         />
         <Summary
           icon="coins"
-          label="Valore totale"
-          value={formatMoney(totalCents)}
+          label={t("reports.totalValue")}
+          value={formatMoney(totalCents, localeTag)}
         />
         <Summary
           icon="sparkles"
-          label="Attività"
+          label={t("reports.activities")}
           value={String(filtered.length)}
           accent
         />
@@ -322,29 +333,32 @@ export function Reports({ entries }: { entries: Entry[] }) {
       <div className="panel report-table">
         {!!filtered.length && (
           <div className="report-row report-head" aria-hidden="true">
-            <span>Data</span>
-            <span>Attività</span>
-            <span>Durata</span>
-            <span>Importo</span>
+            <span>{t("reports.table.date")}</span>
+            <span>{t("reports.table.activity")}</span>
+            <span>{t("reports.table.duration")}</span>
+            <span>{t("reports.table.amount")}</span>
           </div>
         )}
         {filtered.map((entry) => (
           <div className="report-row" key={entry.id}>
             <span>
-              {formatDate(toLocalInput(entry.started_at).slice(0, 10))}
+              {formatDate(
+                toLocalInput(entry.started_at).slice(0, 10),
+                localeTag,
+              )}
             </span>
             <div>
               <strong>{entry.project_name}</strong>
               <small>{entry.client_name}</small>
             </div>
             <b>{formatDuration(entryMinutes(entry))}</b>
-            <b>{formatMoney(entryAmount(entry))}</b>
+            <b>{formatMoney(entryAmount(entry), localeTag)}</b>
           </div>
         ))}
         {!filtered.length && (
           <EmptyState
-            title="I numeri arriveranno presto."
-            description="Registra il primo slot oppure cambia intervallo: Timmy trasformerà il tempo in un riepilogo chiaro."
+            title={t("reports.emptyTitle")}
+            description={t("reports.emptyDescription")}
           />
         )}
       </div>
@@ -436,12 +450,20 @@ function dateValue(date: Date) {
   return date.toLocaleDateString("sv-SE");
 }
 
-function formatDate(value: string) {
-  return new Date(`${value}T12:00:00`).toLocaleDateString("it-IT");
+function formatDate(value: string, locale: string) {
+  return new Date(`${value}T12:00:00`).toLocaleDateString(locale);
 }
 
 function escapeCsvCell(value: unknown) {
   return `"${String(value).replaceAll('"', '""')}"`;
+}
+
+function formatCsvNumber(value: number, locale: string) {
+  return new Intl.NumberFormat(locale, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+    useGrouping: false,
+  }).format(value);
 }
 
 function download(content: string, name: string, type: string) {

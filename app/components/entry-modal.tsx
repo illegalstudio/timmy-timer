@@ -1,7 +1,8 @@
 "use client";
 
 import { type FormEvent, useEffect, useState } from "react";
-import { toLocalInput } from "../lib/time";
+import { useI18n } from "../i18n/i18n-provider";
+import { formatMoney, toLocalInput } from "../lib/time";
 import { Icon } from "./icon";
 import { SmartSelect } from "./smart-select";
 import type {
@@ -34,6 +35,7 @@ export function EntryModal({
   onClose,
   onSave,
 }: EntryModalProps) {
+  const { t } = useI18n();
   const [busy, setBusy] = useState(false);
   const start = preset?.start ?? roundedCurrentHour();
   const end = preset?.end ?? new Date(start.getTime() + 3_600_000);
@@ -100,17 +102,29 @@ export function EntryModal({
             </span>
             <div>
               <p className="eyebrow">
-                {isEditing ? "Metti a punto" : "Aggiungi alla tua agenda"}
+                {isEditing ? t("modal.editEyebrow") : t("modal.addEyebrow")}
               </p>
-              <h2 id="modal-title">{modalTitle(type)}</h2>
-              <p>{modalDescription(type)}</p>
+              <h2 id="modal-title">
+                {type === "entry"
+                  ? t("modal.entry.title")
+                  : type === "client"
+                    ? t("modal.client.title")
+                    : t("modal.project.title")}
+              </h2>
+              <p>
+                {type === "entry"
+                  ? t("modal.entry.description")
+                  : type === "client"
+                    ? t("modal.client.description")
+                    : t("modal.project.description")}
+              </p>
             </div>
           </div>
           <button
             className="modal-close"
             type="button"
             onClick={onClose}
-            aria-label="Chiudi"
+            aria-label={t("modal.close")}
           >
             <Icon name="close" />
           </button>
@@ -124,10 +138,14 @@ export function EntryModal({
 
         <div className="modal-actions">
           <button type="button" onClick={onClose}>
-            Annulla
+            {t("modal.cancel")}
           </button>
           <button className="primary" disabled={busy}>
-            {busy ? "Salvataggio…" : isEditing ? "Salva modifiche" : "Salva"}
+            {busy
+              ? t("modal.saving")
+              : isEditing
+                ? t("modal.saveChanges")
+                : t("modal.save")}
           </button>
         </div>
       </form>
@@ -136,20 +154,22 @@ export function EntryModal({
 }
 
 function ClientFields({ client }: { client: Client | null }) {
+  const { t } = useI18n();
+
   return (
     <>
       <label>
-        Nome
+        {t("field.name")}
         <input
           name="name"
           required
           autoFocus
           defaultValue={client?.name}
-          placeholder="es. Acme S.r.l."
+          placeholder={t("field.clientPlaceholder")}
         />
       </label>
       <label>
-        Tariffa predefinita €/ora
+        {t("field.defaultRate")}
         <input
           name="hourlyRate"
           type="number"
@@ -173,32 +193,33 @@ function ProjectFields({
   data: AppData;
   project: Project | null;
 }) {
+  const { localeTag, t } = useI18n();
+
   return (
     <>
       <SmartSelect
-        label="Cliente"
+        label={t("field.client")}
         name="clientId"
         required
         defaultValue={String(project?.client_id ?? data.clients[0]?.id ?? "")}
-        searchPlaceholder="Cerca cliente…"
+        searchPlaceholder={t("field.searchClient")}
         options={data.clients.map((client) => ({
           value: String(client.id),
           label: client.name,
           hint: client.hourly_rate_cents
-            ? `${(client.hourly_rate_cents / 100).toLocaleString("it-IT", {
-                style: "currency",
-                currency: "EUR",
-              })}/ora`
-            : "Nessuna tariffa predefinita",
+            ? t("clients.ratePerHour", {
+                rate: formatMoney(client.hourly_rate_cents, localeTag),
+              })
+            : t("field.noDefaultRate"),
         }))}
       />
       <label>
-        Nome progetto
+        {t("field.projectName")}
         <input name="name" required autoFocus defaultValue={project?.name} />
       </label>
       <div className="form-grid">
         <label>
-          Colore
+          {t("field.color")}
           <input
             name="color"
             type="color"
@@ -206,7 +227,7 @@ function ProjectFields({
           />
         </label>
         <label>
-          Tariffa specifica €/ora
+          {t("field.specificRate")}
           <input
             name="hourlyRate"
             type="number"
@@ -235,14 +256,16 @@ function TimeEntryFields({
   start: Date;
   end: Date;
 }) {
+  const { t } = useI18n();
+
   return (
     <>
       <SmartSelect
-        label="Progetto"
+        label={t("field.project")}
         name="projectId"
         required
         defaultValue={String(entry?.project_id ?? data.projects[0]?.id ?? "")}
-        searchPlaceholder="Cerca progetto o cliente…"
+        searchPlaceholder={t("field.searchProjectClient")}
         options={data.projects.map((project) => {
           const clientName = data.clients.find(
             (client) => client.id === project.client_id,
@@ -258,7 +281,7 @@ function TimeEntryFields({
       />
       <div className="form-grid">
         <label>
-          Inizio
+          {t("field.start")}
           <input
             name="startedAt"
             type="datetime-local"
@@ -267,7 +290,7 @@ function TimeEntryFields({
           />
         </label>
         <label>
-          Fine
+          {t("field.end")}
           <input
             name="endedAt"
             type="datetime-local"
@@ -277,11 +300,11 @@ function TimeEntryFields({
         </label>
       </div>
       <label>
-        Descrizione
+        {t("field.description")}
         <input name="description" defaultValue={entry?.description ?? ""} />
       </label>
       <label>
-        Tariffa €/ora
+        {t("field.rate")}
         <input
           name="hourlyRate"
           type="number"
@@ -297,7 +320,7 @@ function TimeEntryFields({
           name="billable"
           defaultChecked={entry ? Boolean(entry.billable) : true}
         />
-        Attività fatturabile
+        {t("field.billable")}
       </label>
     </>
   );
@@ -307,16 +330,4 @@ function roundedCurrentHour() {
   const date = new Date();
   date.setMinutes(0, 0, 0);
   return date;
-}
-
-function modalTitle(type: ModalType) {
-  if (type === "entry") return "Slot di tempo";
-  if (type === "client") return "Dettagli cliente";
-  return "Dettagli progetto";
-}
-
-function modalDescription(type: ModalType) {
-  if (type === "entry") return "Cosa hai fatto e quanto tempo ci hai dedicato?";
-  if (type === "client") return "Una casa ordinata per progetti e tariffe.";
-  return "Dai un nome e un colore al lavoro da tracciare.";
 }

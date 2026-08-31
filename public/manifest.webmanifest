@@ -1,12 +1,12 @@
 {
   "name": "Timmy Timer",
   "short_name": "Timmy",
-  "description": "Il tempo giusto, al posto giusto.",
+  "description": "The right time, in the right place.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#fff8e9",
   "theme_color": "#2d2038",
-  "lang": "it",
+  "lang": "en",
   "icons": [
     {
       "src": "/favicon.svg",

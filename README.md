@@ -1,52 +1,68 @@
 <p align="center">
-  <img src="public/favicon.svg" alt="Marchio di Timmy Timer" width="112">
+  <img src="public/favicon.svg" alt="Timmy Timer mark" width="112">
 </p>
 
 <h1 align="center">Timmy Timer</h1>
 
-<p align="center"><em>Il tempo giusto, al posto giusto.</em></p>
+<p align="center"><em>The right time, in the right place.</em></p>
 
 <p align="center">
-  <a href="https://github.com/nahime0/timmy-timer/stargazers"><img src="https://img.shields.io/github/stars/nahime0/timmy-timer?style=flat-square&logo=github&logoColor=white&label=stars&color=F06B52" alt="Stelle su GitHub"></a>
-  <a href="https://github.com/nahime0/timmy-timer/commits/main"><img src="https://img.shields.io/github/last-commit/nahime0/timmy-timer?style=flat-square&logo=git&logoColor=white&label=ultimo%20commit&color=F06B52" alt="Ultimo commit"></a>
-  <img src="https://img.shields.io/badge/Node-%E2%89%A522.13-F06B52?style=flat-square&logo=nodedotjs&logoColor=white" alt="Node.js 22.13 o successivo">
+  <a href="https://github.com/nahime0/timmy-timer/stargazers"><img src="https://img.shields.io/github/stars/nahime0/timmy-timer?style=flat-square&logo=github&logoColor=white&label=stars&color=F06B52" alt="GitHub stars"></a>
+  <a href="https://github.com/nahime0/timmy-timer/commits/main"><img src="https://img.shields.io/github/last-commit/nahime0/timmy-timer?style=flat-square&logo=git&logoColor=white&label=last%20commit&color=F06B52" alt="Last commit"></a>
+  <img src="https://img.shields.io/badge/Node-%E2%89%A522.13-F06B52?style=flat-square&logo=nodedotjs&logoColor=white" alt="Node.js 22.13 or newer">
   <img src="https://img.shields.io/badge/React-19-F06B52?style=flat-square&logo=react&logoColor=white" alt="React 19">
 </p>
 
-<p align="center"><strong>Agenda settimanale &middot; Clienti e progetti &middot; Report CSV/PDF &middot; Cloudflare D1</strong></p>
+<p align="center"><strong>Weekly calendar &middot; Clients and projects &middot; CSV/PDF reports &middot; Four languages &middot; Cloudflare D1</strong></p>
 
 <p align="center">
-  Un time tracker personale che trasforma ore, clienti e progetti in una routine semplice da leggere.<br>
-  Timmy accompagna ogni passaggio, dall'onboarding al report finale.
+  A personal time tracker that turns hours, clients, and projects into a calm, readable routine.<br>
+  Timmy stays with you from first-time setup to the final report.
 </p>
+
+<p align="center"><a href="https://tempo-personale.nahime.chatgpt.site"><strong>Open Timmy Timer →</strong></a></p>
 
 ---
 
 <p align="center">
-  <img src="public/og-timmy-timer.png" alt="Timmy Timer — Il tempo giusto, al posto giusto" width="860">
+  <img src="public/og-timmy-timer-en.png" alt="Timmy Timer — The right time, in the right place" width="860">
 </p>
 
-## Il time tracking, felice
+## Happy time tracking
 
-Timmy Timer raccoglie in un'unica interfaccia tutto ciò che serve per registrare il lavoro quotidiano: una settimana visuale, clienti e progetti ben riconoscibili, tariffe congelate nel momento giusto e report pronti da esportare.
+Timmy Timer brings everything needed for day-to-day time tracking into one interface: a visual week, recognizable clients and projects, frozen historical rates, and reports ready to export.
 
-L'app è pensata per restare veloce anche nei flussi più ripetitivi. Le attività si creano trascinando sull'agenda, si spostano e ridimensionano direttamente nel calendario e si gestiscono anche dal menu contestuale. Timmy resta sempre nei paraggi per dare contesto, feedback e un po' di personalità.
+The app is designed to keep repetitive workflows fast. Create time entries by dragging on the calendar, move and resize them directly in the week view, and use the context menu to edit or delete them. Timmy provides context, feedback, and a little personality along the way.
 
-## Cosa sa fare Timmy
+## What Timmy can do
 
-| Funzione                            | In pratica                                                                                                                                            |
-| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Agenda visuale**                  | Crea attività trascinando, spostale tra giorni e orari e modifica la durata direttamente dalla settimana.                                             |
-| **Clienti e progetti**              | Organizza il lavoro con colori, avatar riconoscibili e tariffe orarie dedicate.                                                                       |
-| **Ricerca rapida**                  | Trova clienti e progetti nelle select filtrabili, navigabili da tastiera e sempre contenute nel viewport.                                             |
-| **Modifica ed eliminazione sicura** | Modifica o elimina le attività dal menu contestuale; quando rimuovi clienti o progetti puoi riassegnare o cancellare le attività rimaste senza padre. |
-| **Report utili**                    | Filtra per periodo, cliente e progetto, controlla ore e valori economici ed esporta in CSV o PDF.                                                     |
-| **Tariffe storiche affidabili**     | Ogni registrazione conserva la tariffa applicata, così una modifica futura non altera i conteggi già registrati.                                      |
-| **Responsive e installabile**       | Usa Timmy Timer anche su schermi piccoli e installalo come PWA grazie a manifest e service worker.                                                    |
+| Feature                        | What it means                                                                                                                  |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| **Visual weekly calendar**     | Create entries by dragging, move them between times, and resize their duration directly in the calendar.                       |
+| **Clients and projects**       | Organize work with colors, recognizable avatars, and dedicated hourly rates.                                                   |
+| **Fast search**                | Find clients and projects in searchable, keyboard-friendly selects that stay inside the viewport.                              |
+| **Safe editing and deletion**  | Edit or delete calendar entries from the context menu, and reassign or remove orphaned work when deleting a client or project. |
+| **Useful reports**             | Filter by date range, client, and project; review hours and value; then export to CSV or PDF.                                  |
+| **Reliable historical rates**  | Every time entry keeps the rate that was applied when it was created, so later rate changes do not rewrite history.            |
+| **Multilingual interface**     | Use the complete app in English, Italian, French, or German, with localized dates, amounts, exports, and accessibility text.   |
+| **Responsive and installable** | Work comfortably on smaller screens and install Timmy Timer as a PWA through its web app manifest and service worker.          |
 
-## Avvio locale
+## Languages
 
-Servono [Node.js](https://nodejs.org/) **22.13 o successivo** e npm.
+English is the default. Open **Settings** to switch to:
+
+- English
+- Italian
+- French
+- German
+
+The preference is applied immediately and saved on the current device. Interface copy, dates, currency formatting, CSV headers, PDF content, empty states, dialogs, and accessibility labels all follow the selected language.
+
+Translations are type-safe and live in [`app/i18n/messages`](app/i18n/messages). See [`AGENTS.md`](AGENTS.md) for the required workflow when adding or changing user-facing copy.
+
+## Run locally
+
+You need [Node.js](https://nodejs.org/) **22.13 or newer** and npm.
 
 ```bash
 git clone git@github.com:nahime0/timmy-timer.git
@@ -55,66 +71,80 @@ npm install
 npm run dev
 ```
 
-L'app sarà disponibile su [http://localhost:3000](http://localhost:3000). In sviluppo viene usata un'istanza locale di Cloudflare D1: lo schema viene inizializzato dall'app e i dati locali restano nella directory `.wrangler/`, esclusa da Git.
+The app is available at [http://localhost:3000](http://localhost:3000). Development uses a local Cloudflare D1 instance. The application initializes its schema automatically, and local data is stored under `.wrangler/`, which is excluded from Git.
 
-## Flusso dei dati
+## Application routes
+
+| Route       | Purpose                                       |
+| ----------- | --------------------------------------------- |
+| `/calendar` | Weekly calendar and time-entry management     |
+| `/clients`  | Client details, rates, and deletion workflow  |
+| `/projects` | Project details, colors, and rates            |
+| `/reports`  | Filters, totals, CSV exports, and PDF exports |
+| `/settings` | App language and user preferences             |
+
+The root route redirects to `/calendar`. Each page has its own stable URL and can be opened or refreshed directly.
+
+## Data flow
 
 ```text
-Cliente
-└── Progetto
-    └── Attività in agenda
-        ├── durata e descrizione
-        ├── tariffa applicata
-        └── stato fatturabile / fatturato
+Client
+└── Project
+    └── Calendar entry
+        ├── duration and description
+        ├── applied hourly rate
+        └── billable / invoiced state
 ```
 
-Clienti, progetti e attività sono salvati su **Cloudflare D1** tramite **Drizzle ORM**. La cancellazione delle entità collegate viene gestita esplicitamente: prima di procedere, l'interfaccia permette di riassegnare le attività orfane oppure di eliminarle insieme all'entità.
+Clients, projects, and entries are stored in **Cloudflare D1** through **Drizzle ORM**. Deleting connected records is explicit: the interface asks whether orphaned work should be reassigned or deleted together with its parent.
 
 ## Stack
 
-| Area                | Tecnologia                                   |
-| ------------------- | -------------------------------------------- |
-| Interfaccia         | React 19, Next App Router, TypeScript 5.9    |
-| Build e runtime     | Vinext, Vite 8, Cloudflare Workers           |
-| Persistenza         | Cloudflare D1 (SQLite), Drizzle ORM          |
-| Stile               | CSS custom properties, Tailwind CSS pipeline |
-| Esportazione report | CSV nel browser, PDF con jsPDF               |
-| Installabilità      | Web app manifest e service worker            |
+| Area              | Technology                                   |
+| ----------------- | -------------------------------------------- |
+| Interface         | React 19, Next App Router, TypeScript 5.9    |
+| Build and runtime | Vinext, Vite 8, Cloudflare Workers           |
+| Persistence       | Cloudflare D1 (SQLite), Drizzle ORM          |
+| Styling           | CSS custom properties, Tailwind CSS pipeline |
+| Report export     | Browser-generated CSV, PDF export with jsPDF |
+| Localization      | Type-safe in-app catalogs and the Intl API   |
+| Installation      | Web app manifest and service worker          |
 
-## Comandi disponibili
+## Available commands
 
-| Comando                | Cosa fa                                         |
-| ---------------------- | ----------------------------------------------- |
-| `npm run dev`          | Avvia l'ambiente di sviluppo                    |
-| `npm run build`        | Genera la build di produzione                   |
-| `npm run start`        | Avvia la build in modalità produzione           |
-| `npm run lint`         | Controlla il codice con ESLint                  |
-| `npm run format`       | Formatta il progetto con Prettier               |
-| `npm run format:check` | Verifica la formattazione senza modificare file |
-| `npm run db:generate`  | Genera le migrazioni Drizzle dallo schema       |
+| Command                | Purpose                                     |
+| ---------------------- | ------------------------------------------- |
+| `npm run dev`          | Start the development environment           |
+| `npm run build`        | Create a production build                   |
+| `npm run start`        | Run the production build                    |
+| `npm run lint`         | Check the code with ESLint                  |
+| `npm run format`       | Format the project with Prettier            |
+| `npm run format:check` | Verify formatting without changing files    |
+| `npm run db:generate`  | Generate Drizzle migrations from the schema |
 
-## Struttura del progetto
+## Project structure
 
 <details>
-<summary>Mostra le directory principali</summary>
+<summary>Show the main directories</summary>
 
 ```text
 timmy-timer/
 ├── app/
-│   ├── api/data/          # API per clienti, progetti e attività
-│   ├── components/        # Agenda, report, modali, select e Timmy
-│   ├── lib/               # Tipi e utilità per il tempo
-│   ├── globals.css        # Design system e stili globali
-│   └── page.tsx           # Ingresso dell'applicazione
+│   ├── api/data/          # API for clients, projects, and entries
+│   ├── components/        # Calendar, reports, dialogs, selects, and Timmy
+│   ├── i18n/              # Provider, locale configuration, and messages
+│   ├── lib/               # Shared types and time utilities
+│   ├── globals.css        # Design system and global styles
+│   └── page.tsx           # Root redirect
 ├── db/
-│   ├── schema.ts          # Modello dati Drizzle
-│   └── index.ts           # Connessione a Cloudflare D1
-├── drizzle/               # Migrazioni SQL
+│   ├── schema.ts          # Drizzle data model
+│   └── index.ts           # Cloudflare D1 connection
+├── drizzle/               # SQL migrations
 ├── public/
-│   ├── timmy.png          # Mascotte
-│   ├── favicon.svg        # Marchio
-│   └── og-timmy-timer.png # Immagine social
-└── vite.config.ts         # Vinext, Sites e runtime Cloudflare
+│   ├── timmy.png          # Mascot artwork
+│   ├── favicon.svg        # Brand mark
+│   └── og-timmy-timer-en.png # English social preview
+└── vite.config.ts         # Vinext, Sites, and Cloudflare runtime
 ```
 
 </details>
@@ -122,6 +152,6 @@ timmy-timer/
 ---
 
 <p align="center">
-  <img src="public/timmy.png" alt="Timmy, la mascotte di Timmy Timer" width="170"><br>
-  <strong>Fai spazio alle cose importanti. Al tempo ci pensa Timmy.</strong>
+  <img src="public/timmy.png" alt="Timmy, the Timmy Timer mascot" width="170"><br>
+  <strong>Make room for what matters. Timmy will take care of the time.</strong>
 </p>

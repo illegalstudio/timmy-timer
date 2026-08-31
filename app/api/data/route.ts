@@ -73,10 +73,7 @@ export async function POST(request: NextRequest) {
       .bind(Number(body.projectId))
       .first<Record<string, number | null>>();
     if (!project)
-      return NextResponse.json(
-        { error: "Progetto non trovato" },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: "project_not_found" }, { status: 404 });
     const manualRate = Number(body.hourlyRate);
     const cents =
       manualRate > 0
@@ -106,8 +103,7 @@ export async function POST(request: NextRequest) {
         now,
       )
       .run();
-  } else
-    return NextResponse.json({ error: "Tipo non valido" }, { status: 400 });
+  } else return NextResponse.json({ error: "invalid_type" }, { status: 400 });
   return GET();
 }
 export async function PATCH(request: NextRequest) {
@@ -128,7 +124,7 @@ export async function PATCH(request: NextRequest) {
       endedAt <= startedAt
     )
       return NextResponse.json(
-        { error: "Intervallo non valido" },
+        { error: "invalid_time_range" },
         { status: 400 },
       );
     await env.DB.prepare(
@@ -151,7 +147,7 @@ export async function PATCH(request: NextRequest) {
       endedAt <= startedAt ||
       !Number.isFinite(rate)
     )
-      return NextResponse.json({ error: "Dati non validi" }, { status: 400 });
+      return NextResponse.json({ error: "invalid_data" }, { status: 400 });
     await env.DB.prepare(
       "UPDATE time_entries SET project_id=?, started_at=?, ended_at=?, description=?, billable=?, hourly_rate_cents=?, rate_source=?, updated_at=? WHERE id=?",
     )
@@ -207,13 +203,13 @@ export async function DELETE(request: NextRequest) {
   if (!entity) {
     const id = Number(url.searchParams.get("id"));
     if (!Number.isInteger(id) || id <= 0)
-      return NextResponse.json({ error: "Slot non valido" }, { status: 400 });
+      return NextResponse.json({ error: "invalid_entry" }, { status: 400 });
     await env.DB.prepare("DELETE FROM time_entries WHERE id=?").bind(id).run();
     return GET();
   }
 
   if (entity !== "client" && entity !== "project")
-    return NextResponse.json({ error: "Entità non valida" }, { status: 400 });
+    return NextResponse.json({ error: "invalid_entity" }, { status: 400 });
 
   const body = (await request.json().catch(() => ({}))) as Record<
     string,
@@ -224,17 +220,14 @@ export async function DELETE(request: NextRequest) {
   const targetId = Number(body.targetId);
 
   if (!Number.isInteger(id) || id <= 0)
-    return NextResponse.json({ error: "Elemento non valido" }, { status: 400 });
+    return NextResponse.json({ error: "invalid_item" }, { status: 400 });
   if (strategy !== "reassign" && strategy !== "delete")
-    return NextResponse.json({ error: "Scelta non valida" }, { status: 400 });
+    return NextResponse.json({ error: "invalid_strategy" }, { status: 400 });
   if (
     strategy === "reassign" &&
     (!Number.isInteger(targetId) || targetId <= 0 || targetId === id)
   )
-    return NextResponse.json(
-      { error: "Destinazione non valida" },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: "invalid_target" }, { status: 400 });
 
   if (entity === "project") {
     const project = await env.DB.prepare(
@@ -243,10 +236,7 @@ export async function DELETE(request: NextRequest) {
       .bind(id)
       .first();
     if (!project)
-      return NextResponse.json(
-        { error: "Progetto non trovato" },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: "project_not_found" }, { status: 404 });
 
     if (strategy === "reassign") {
       const target = await env.DB.prepare(
@@ -256,7 +246,7 @@ export async function DELETE(request: NextRequest) {
         .first();
       if (!target)
         return NextResponse.json(
-          { error: "Progetto di destinazione non valido" },
+          { error: "invalid_destination_project" },
           { status: 400 },
         );
       await env.DB.batch([
@@ -280,7 +270,7 @@ export async function DELETE(request: NextRequest) {
     .bind(id)
     .first();
   if (!client)
-    return NextResponse.json({ error: "Cliente non trovato" }, { status: 404 });
+    return NextResponse.json({ error: "client_not_found" }, { status: 404 });
 
   if (strategy === "reassign") {
     const target = await env.DB.prepare(
@@ -290,7 +280,7 @@ export async function DELETE(request: NextRequest) {
       .first();
     if (!target)
       return NextResponse.json(
-        { error: "Cliente di destinazione non valido" },
+        { error: "invalid_destination_client" },
         { status: 400 },
       );
     await env.DB.batch([

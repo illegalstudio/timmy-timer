@@ -10,8 +10,10 @@ import {
 import { EntryModal } from "./components/entry-modal";
 import { Icon, type IconName } from "./components/icon";
 import { Reports } from "./components/reports";
+import { Settings } from "./components/settings";
 import { Timmy } from "./components/timmy";
 import { CalendarPage } from "./components/week-calendar";
+import { useI18n } from "./i18n/i18n-provider";
 import {
   entryAmount,
   entryMinutes,
@@ -30,26 +32,57 @@ import type {
   SlotPreset,
   View,
 } from "./lib/types";
+import type { MessageKey } from "./i18n/types";
 
 const EMPTY_DATA: AppData = { clients: [], projects: [], entries: [] };
 const NAVIGATION: Array<{
   view: View;
-  label: string;
+  labelKey: MessageKey;
   icon: IconName;
   href: string;
 }> = [
-  { view: "registro", label: "Agenda", icon: "calendar", href: "/calendar" },
-  { view: "clienti", label: "Clienti", icon: "clients", href: "/clients" },
+  {
+    view: "registro",
+    labelKey: "nav.calendar",
+    icon: "calendar",
+    href: "/calendar",
+  },
+  {
+    view: "clienti",
+    labelKey: "nav.clients",
+    icon: "clients",
+    href: "/clients",
+  },
   {
     view: "progetti",
-    label: "Progetti",
+    labelKey: "nav.projects",
     icon: "projects",
     href: "/projects",
   },
-  { view: "report", label: "Report", icon: "reports", href: "/reports" },
+  {
+    view: "report",
+    labelKey: "nav.reports",
+    icon: "reports",
+    href: "/reports",
+  },
+  {
+    view: "settings",
+    labelKey: "nav.settings",
+    icon: "sparkles",
+    href: "/settings",
+  },
 ];
 
+const PAGE_TITLE_KEYS: Record<View, MessageKey> = {
+  registro: "pageTitle.calendar",
+  clienti: "pageTitle.clients",
+  progetti: "pageTitle.projects",
+  report: "pageTitle.reports",
+  settings: "pageTitle.settings",
+};
+
 export default function TimmyTimer({ view }: { view: View }) {
+  const { t } = useI18n();
   const [data, setData] = useState<AppData>(EMPTY_DATA);
   const [date, setDate] = useState(today());
   const [modal, setModal] = useState<ModalType | null>(null);
@@ -59,7 +92,7 @@ export default function TimmyTimer({ view }: { view: View }) {
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<MessageKey | null>(null);
   const [timmyNotice, setTimmyNotice] = useState("");
 
   useEffect(() => {
@@ -68,9 +101,13 @@ export default function TimmyTimer({ view }: { view: View }) {
     }
     void loadData()
       .then(setData)
-      .catch(() => setError("Impossibile caricare i dati."))
+      .catch(() => setError("app.loadError"))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    document.title = `${t(PAGE_TITLE_KEYS[view])} | Timmy Timer`;
+  }, [t, view]);
 
   useEffect(() => {
     if (!timmyNotice) return;
@@ -79,14 +116,14 @@ export default function TimmyTimer({ view }: { view: View }) {
   }, [timmyNotice]);
 
   const mutate: Mutate = async (method, body, url = "/api/data") => {
-    setError("");
+    setError(null);
     const response = await fetch(url, {
       method,
       headers: { "Content-Type": "application/json" },
       body: body ? JSON.stringify(body) : undefined,
     });
     if (!response.ok) {
-      setError("Operazione non riuscita.");
+      setError("app.actionError");
       return false;
     }
     setData(await response.json());
@@ -162,9 +199,7 @@ export default function TimmyTimer({ view }: { view: View }) {
     if (saved) {
       closeModal();
       setTimmyNotice(
-        wasEditing
-          ? "Modifiche salvate. Tutto in ordine!"
-          : creationMessage(savedType),
+        wasEditing ? t("toast.saved") : t(creationMessageKey(savedType)),
       );
     }
   }
@@ -189,8 +224,8 @@ export default function TimmyTimer({ view }: { view: View }) {
     setDeleteTarget(null);
     setTimmyNotice(
       strategy === "reassign"
-        ? `${deletedName} eliminato. Le attività sono al sicuro!`
-        : `${deletedName} e le attività collegate sono stati eliminati.`,
+        ? t("toast.reassigned", { name: deletedName })
+        : t("toast.deletedWithEntries", { name: deletedName }),
     );
   }
 
@@ -201,7 +236,7 @@ export default function TimmyTimer({ view }: { view: View }) {
         <MobileTimmyStatus dayMinutes={totals.dayMinutes} />
         {error && (
           <div className="error" role="alert">
-            <strong>Ops.</strong> {error}
+            <strong>{t("app.errorPrefix")}</strong> {t(error)}
           </div>
         )}
         {loading ? (
@@ -209,7 +244,7 @@ export default function TimmyTimer({ view }: { view: View }) {
             <span className="loading-timer">
               <Icon name="timer" />
             </span>
-            <strong>Timmy sta preparando tutto…</strong>
+            <strong>{t("app.loading")}</strong>
           </div>
         ) : (
           <AppView
@@ -259,13 +294,13 @@ export default function TimmyTimer({ view }: { view: View }) {
             <Timmy className="toast-timmy" />
           </span>
           <span className="toast-copy">
-            <small>Timmy dice</small>
+            <small>{t("timmy.says")}</small>
             <strong>{timmyNotice}</strong>
           </span>
           <button
             type="button"
             onClick={() => setTimmyNotice("")}
-            aria-label="Chiudi messaggio di Timmy"
+            aria-label={t("app.closeNotice")}
           >
             <Icon name="close" />
           </button>
@@ -348,7 +383,8 @@ function AppView({
       />
     );
   }
-  return <Reports entries={data.entries} />;
+  if (view === "report") return <Reports entries={data.entries} />;
+  return <Settings />;
 }
 
 function Sidebar({
@@ -358,6 +394,8 @@ function Sidebar({
   currentView: View;
   dayMinutes: number;
 }) {
+  const { localeTag, t } = useI18n();
+
   return (
     <aside className="sidebar">
       <div className="brand">
@@ -366,10 +404,10 @@ function Sidebar({
         </span>
         <span className="brand-copy">
           <strong>Timmy Timer</strong>
-          <small>Time tracking, felice.</small>
+          <small>{t("brand.tagline")}</small>
         </span>
       </div>
-      <nav aria-label="Navigazione principale">
+      <nav aria-label={t("nav.aria")}>
         {NAVIGATION.map((item) => (
           <Link
             className={currentView === item.view ? "active" : ""}
@@ -378,7 +416,7 @@ function Sidebar({
             aria-current={currentView === item.view ? "page" : undefined}
           >
             <Icon name={item.icon} />
-            <span>{item.label}</span>
+            <span>{t(item.labelKey)}</span>
           </Link>
         ))}
       </nav>
@@ -388,13 +426,17 @@ function Sidebar({
             <Timmy className="today-timmy" />
           </span>
           <span className="today-copy">
-            <small>Timmy dice</small>
-            <strong>{timmyDailyMessage(dayMinutes)}</strong>
-            <span>{formatDuration(dayMinutes)} registrate</span>
+            <small>{t("timmy.says")}</small>
+            <strong>{t(timmyDailyMessageKey(dayMinutes))}</strong>
+            <span>
+              {t("timmy.tracked", {
+                duration: formatDuration(dayMinutes),
+              })}
+            </span>
           </span>
         </div>
         <p>
-          {new Date().toLocaleDateString("it-IT", {
+          {new Date().toLocaleDateString(localeTag, {
             weekday: "long",
             day: "numeric",
             month: "long",
@@ -406,14 +448,16 @@ function Sidebar({
 }
 
 function MobileTimmyStatus({ dayMinutes }: { dayMinutes: number }) {
+  const { t } = useI18n();
+
   return (
     <div className="mobile-timmy-status">
       <span className="mobile-timmy-wrap">
         <Timmy className="mobile-timmy" />
       </span>
       <span>
-        <small>Timmy dice</small>
-        <strong>{timmyDailyMessage(dayMinutes)}</strong>
+        <small>{t("timmy.says")}</small>
+        <strong>{t(timmyDailyMessageKey(dayMinutes))}</strong>
       </span>
       <b>{formatDuration(dayMinutes)}</b>
     </div>
@@ -431,14 +475,16 @@ function ClientsView({
   onEdit: (client: Client) => void;
   onDelete: (client: Client) => void;
 }) {
+  const { localeTag, t } = useI18n();
+
   return (
     <Collection
-      eyebrow="La tua rubrica"
-      title="Clienti"
-      subtitle="Persone, aziende e tariffe: tutto in ordine."
-      button="Nuovo cliente"
-      emptyTitle="Iniziamo dalle persone."
-      emptyDescription="Aggiungi il primo cliente: Timmy terrà insieme progetti, tariffe e tempo dedicato."
+      eyebrow={t("clients.eyebrow")}
+      title={t("clients.title")}
+      subtitle={t("clients.subtitle")}
+      button={t("clients.new")}
+      emptyTitle={t("clients.emptyTitle")}
+      emptyDescription={t("clients.emptyDescription")}
       onAdd={onAdd}
     >
       {data.clients.map((client) => (
@@ -453,12 +499,18 @@ function ClientsView({
           <div>
             <strong>{client.name}</strong>
             <span>
-              {
+              {t(
                 data.projects.filter(
                   (project) => project.client_id === client.id,
-                ).length
-              }{" "}
-              progetti
+                ).length === 1
+                  ? "clients.projects.one"
+                  : "clients.projects.many",
+                {
+                  count: data.projects.filter(
+                    (project) => project.client_id === client.id,
+                  ).length,
+                },
+              )}
             </span>
           </div>
           <div
@@ -467,24 +519,26 @@ function ClientsView({
           >
             <b>
               {client.hourly_rate_cents
-                ? `${formatMoney(client.hourly_rate_cents)}/ora`
-                : "Nessuna tariffa"}
+                ? t("clients.ratePerHour", {
+                    rate: formatMoney(client.hourly_rate_cents, localeTag),
+                  })
+                : t("clients.noRate")}
             </b>
             <button
               className="collection-edit"
               onClick={() => onEdit(client)}
-              aria-label={`Modifica ${client.name}`}
+              aria-label={t("clients.editAria", { name: client.name })}
             >
               <Icon name="pencil" />
-              <span>Modifica</span>
+              <span>{t("clients.edit")}</span>
             </button>
             <button
               className="collection-delete"
               onClick={() => onDelete(client)}
-              aria-label={`Elimina ${client.name}`}
+              aria-label={t("clients.deleteAria", { name: client.name })}
             >
               <Icon name="trash" />
-              <span>Elimina</span>
+              <span>{t("clients.delete")}</span>
             </button>
           </div>
         </article>
@@ -504,14 +558,16 @@ function ProjectsView({
   onEdit: (project: Project) => void;
   onDelete: (project: Project) => void;
 }) {
+  const { localeTag, t } = useI18n();
+
   return (
     <Collection
-      eyebrow="Il tuo lavoro"
-      title="Progetti"
-      subtitle="Colora, organizza e ritrova ogni incarico."
-      button="Nuovo progetto"
-      emptyTitle="Diamo un nome al prossimo lavoro."
-      emptyDescription="Crea un cliente e poi il suo primo progetto. Da lì, ogni minuto troverà il posto giusto."
+      eyebrow={t("projects.eyebrow")}
+      title={t("projects.title")}
+      subtitle={t("projects.subtitle")}
+      button={t("projects.new")}
+      emptyTitle={t("projects.emptyTitle")}
+      emptyDescription={t("projects.emptyDescription")}
       onAdd={onAdd}
     >
       {data.projects.map((project) => (
@@ -545,24 +601,26 @@ function ProjectsView({
           >
             <b>
               {project.hourly_rate_cents
-                ? `${formatMoney(project.hourly_rate_cents)}/ora`
-                : "Tariffa cliente"}
+                ? t("clients.ratePerHour", {
+                    rate: formatMoney(project.hourly_rate_cents, localeTag),
+                  })
+                : t("projects.clientRate")}
             </b>
             <button
               className="collection-edit"
               onClick={() => onEdit(project)}
-              aria-label={`Modifica ${project.name}`}
+              aria-label={t("projects.editAria", { name: project.name })}
             >
               <Icon name="pencil" />
-              <span>Modifica</span>
+              <span>{t("projects.edit")}</span>
             </button>
             <button
               className="collection-delete"
               onClick={() => onDelete(project)}
-              aria-label={`Elimina ${project.name}`}
+              aria-label={t("projects.deleteAria", { name: project.name })}
             >
               <Icon name="trash" />
-              <span>Elimina</span>
+              <span>{t("projects.delete")}</span>
             </button>
           </div>
         </article>
@@ -596,17 +654,17 @@ async function loadData(): Promise<AppData> {
   return response.json();
 }
 
-function timmyDailyMessage(minutes: number) {
-  if (minutes === 0) return "Pronti a partire?";
-  if (minutes < 240) return "Bel ritmo!";
-  if (minutes < 480) return "Ottimo lavoro.";
-  return "Tempo di staccare?";
+function timmyDailyMessageKey(minutes: number): MessageKey {
+  if (minutes === 0) return "timmy.daily.start";
+  if (minutes < 240) return "timmy.daily.pace";
+  if (minutes < 480) return "timmy.daily.great";
+  return "timmy.daily.break";
 }
 
-function creationMessage(type: ModalType | null) {
-  if (type === "client") return "Cliente aggiunto. Primo passo fatto!";
-  if (type === "project") return "Progetto pronto. Ora si parte!";
-  return "Slot segnato. Bel ritmo!";
+function creationMessageKey(type: ModalType | null): MessageKey {
+  if (type === "client") return "toast.clientCreated";
+  if (type === "project") return "toast.projectCreated";
+  return "toast.entryCreated";
 }
 
 function readableTextColor(color: string) {

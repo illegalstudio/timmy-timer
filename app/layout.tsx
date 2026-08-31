@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { I18nProvider } from "./i18n/i18n-provider";
 import "./globals.css";
 import "./calendar.css";
 
@@ -15,20 +16,20 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://tempo-personale.chatgpt.site"),
-  title: "Timmy Timer — Il tempo giusto, al posto giusto",
+  title: "Timmy Timer — The right time, in the right place",
   description:
-    "Il time tracker con carattere: organizza clienti, progetti e ore insieme a Timmy.",
+    "The time tracker with character: organize clients, projects, and hours with Timmy.",
   manifest: "/manifest.webmanifest",
   openGraph: {
     title: "Timmy Timer",
-    description: "Il tempo giusto, al posto giusto.",
-    images: ["/og-timmy-timer.png"],
+    description: "The right time, in the right place.",
+    images: ["/og-timmy-timer-en.png"],
   },
   twitter: {
     card: "summary_large_image",
     title: "Timmy Timer",
-    description: "Il tempo giusto, al posto giusto.",
-    images: ["/og-timmy-timer.png"],
+    description: "The right time, in the right place.",
+    images: ["/og-timmy-timer-en.png"],
   },
 };
 
@@ -44,11 +45,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="it">
+    <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        <I18nProvider>{children}</I18nProvider>
       </body>
     </html>
   );

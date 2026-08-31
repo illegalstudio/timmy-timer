@@ -34,7 +34,7 @@ export type AppData = {
   entries: Entry[];
 };
 
-export type View = "registro" | "clienti" | "progetti" | "report";
+export type View = "registro" | "clienti" | "progetti" | "report" | "settings";
 export type ModalType = "entry" | "client" | "project";
 export type SlotPreset = { start: Date; end: Date };
 export type Mutate = (

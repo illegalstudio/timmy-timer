@@ -4,8 +4,8 @@ export function today(): string {
   return new Date().toLocaleDateString("sv-SE");
 }
 
-export function formatMoney(cents: number): string {
-  return new Intl.NumberFormat("it-IT", {
+export function formatMoney(cents: number, locale = "en-GB"): string {
+  return new Intl.NumberFormat(locale, {
     style: "currency",
     currency: "EUR",
   }).format(cents / 100);
