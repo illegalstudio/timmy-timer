@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
@@ -683,7 +684,11 @@ export function CalendarPage({
                 <b>{formatMoney(dayAmount, localeTag)}</b>
               </span>
             </div>
-            <div className="summary-item">
+            <Link
+              className="summary-item summary-item-link"
+              href="/reports?billing=to-invoice&period=all-time"
+              aria-label={t("calendar.openUninvoiced")}
+            >
               <span className="summary-icon coral">
                 <Icon name="receipt" />
               </span>
@@ -691,7 +696,8 @@ export function CalendarPage({
                 <small>{t("calendar.uninvoiced")}</small>
                 <b>{formatMoney(uninvoiced, localeTag)}</b>
               </span>
-            </div>
+              <Icon className="summary-link-arrow" name="chevron-right" />
+            </Link>
             <small className="calendar-hint">{t("calendar.hint")}</small>
           </div>
           <CalendarView

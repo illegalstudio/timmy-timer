@@ -12,7 +12,7 @@ async function ensureSchema() {
       `CREATE TABLE IF NOT EXISTS projects (id INTEGER PRIMARY KEY AUTOINCREMENT, client_id INTEGER NOT NULL REFERENCES clients(id), name TEXT NOT NULL, color TEXT NOT NULL DEFAULT '#F06B52', hourly_rate_cents INTEGER, archived INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL)`,
     ),
     db.prepare(
-      `CREATE TABLE IF NOT EXISTS time_entries (id INTEGER PRIMARY KEY AUTOINCREMENT, project_id INTEGER NOT NULL REFERENCES projects(id), started_at TEXT NOT NULL, ended_at TEXT NOT NULL, description TEXT, billable INTEGER NOT NULL DEFAULT 1, invoiced INTEGER NOT NULL DEFAULT 0, hourly_rate_cents INTEGER NOT NULL, rate_source TEXT NOT NULL, currency TEXT NOT NULL DEFAULT 'EUR', created_at TEXT NOT NULL, updated_at TEXT NOT NULL)`,
+      `CREATE TABLE IF NOT EXISTS time_entries (id INTEGER PRIMARY KEY AUTOINCREMENT, project_id INTEGER NOT NULL REFERENCES projects(id), started_at TEXT NOT NULL, ended_at TEXT NOT NULL, description TEXT, billable INTEGER NOT NULL DEFAULT 1, invoiced INTEGER NOT NULL DEFAULT 0, invoiced_at TEXT, hourly_rate_cents INTEGER NOT NULL, rate_source TEXT NOT NULL, currency TEXT NOT NULL DEFAULT 'EUR', created_at TEXT NOT NULL, updated_at TEXT NOT NULL)`,
     ),
     db.prepare(
       `CREATE INDEX IF NOT EXISTS idx_projects_client_id ON projects(client_id)`,
@@ -24,6 +24,14 @@ async function ensureSchema() {
       `CREATE INDEX IF NOT EXISTS idx_time_entries_project_id ON time_entries(project_id)`,
     ),
   ]);
+  const columns = await db
+    .prepare("PRAGMA table_info(time_entries)")
+    .all<{ name: string }>();
+  if (!columns.results.some((column) => column.name === "invoiced_at")) {
+    await db
+      .prepare("ALTER TABLE time_entries ADD COLUMN invoiced_at TEXT")
+      .run();
+  }
 }
 export async function GET() {
   await ensureSchema();
@@ -109,13 +117,38 @@ export async function POST(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   await ensureSchema();
   const body = (await request.json()) as Record<string, unknown>;
-  if (body.type === "entry")
+  if (body.type === "entry") {
+    const now = new Date().toISOString();
     await env.DB.prepare(
-      "UPDATE time_entries SET invoiced=?, updated_at=? WHERE id=?",
+      "UPDATE time_entries SET invoiced=?, invoiced_at=?, updated_at=? WHERE id=? AND billable=1",
     )
-      .bind(body.invoiced ? 1 : 0, new Date().toISOString(), Number(body.id))
+      .bind(
+        body.invoiced ? 1 : 0,
+        body.invoiced ? now : null,
+        now,
+        Number(body.id),
+      )
       .run();
-  else if (body.type === "entry-time") {
+  } else if (body.type === "entry-invoice") {
+    const ids = Array.isArray(body.ids)
+      ? Array.from(
+          new Set(
+            body.ids.map(Number).filter((id) => Number.isInteger(id) && id > 0),
+          ),
+        ).slice(0, 500)
+      : [];
+    if (!ids.length)
+      return NextResponse.json({ error: "invalid_entries" }, { status: 400 });
+    const invoiced = body.invoiced === true;
+    const now = new Date().toISOString();
+    await env.DB.batch(
+      ids.map((id) =>
+        env.DB.prepare(
+          "UPDATE time_entries SET invoiced=?, invoiced_at=?, updated_at=? WHERE id=? AND billable=1",
+        ).bind(invoiced ? 1 : 0, invoiced ? now : null, now, id),
+      ),
+    );
+  } else if (body.type === "entry-time") {
     const startedAt = new Date(String(body.startedAt));
     const endedAt = new Date(String(body.endedAt));
     if (
@@ -148,15 +181,18 @@ export async function PATCH(request: NextRequest) {
       !Number.isFinite(rate)
     )
       return NextResponse.json({ error: "invalid_data" }, { status: 400 });
+    const billable = body.billable ? 1 : 0;
     await env.DB.prepare(
-      "UPDATE time_entries SET project_id=?, started_at=?, ended_at=?, description=?, billable=?, hourly_rate_cents=?, rate_source=?, updated_at=? WHERE id=?",
+      "UPDATE time_entries SET project_id=?, started_at=?, ended_at=?, description=?, billable=?, invoiced=CASE WHEN ?=1 THEN invoiced ELSE 0 END, invoiced_at=CASE WHEN ?=1 THEN invoiced_at ELSE NULL END, hourly_rate_cents=?, rate_source=?, updated_at=? WHERE id=?",
     )
       .bind(
         Number(body.projectId),
         startedAt.toISOString(),
         endedAt.toISOString(),
         String(body.description || ""),
-        body.billable ? 1 : 0,
+        billable,
+        billable,
+        billable,
         rate,
         "manual",
         new Date().toISOString(),

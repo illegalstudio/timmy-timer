@@ -383,7 +383,8 @@ function AppView({
       />
     );
   }
-  if (view === "report") return <Reports entries={data.entries} />;
+  if (view === "report")
+    return <Reports entries={data.entries} mutate={mutate} />;
   return <Settings />;
 }
 

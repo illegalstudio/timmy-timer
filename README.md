@@ -42,7 +42,7 @@ The app is designed to keep repetitive workflows fast. Create time entries by dr
 | **Clients and projects**       | Organize work with colors, recognizable avatars, and dedicated hourly rates.                                                   |
 | **Fast search**                | Find clients and projects in searchable, keyboard-friendly selects that stay inside the viewport.                              |
 | **Safe editing and deletion**  | Edit or delete calendar entries from the context menu, and reassign or remove orphaned work when deleting a client or project. |
-| **Useful reports**             | Filter by date range, client, and project; review hours and value; then export to CSV or PDF.                                  |
+| **Reports and billing**        | Filter by period, client, project, or billing status; update activities in bulk; then export to CSV or PDF.                    |
 | **Reliable historical rates**  | Every time entry keeps the rate that was applied when it was created, so later rate changes do not rewrite history.            |
 | **Multilingual interface**     | Use the complete app in English, Italian, French, or German, with localized dates, amounts, exports, and accessibility text.   |
 | **Responsive and installable** | Work comfortably on smaller screens and install Timmy Timer as a PWA through its web app manifest and service worker.          |
@@ -93,7 +93,8 @@ Client
     └── Calendar entry
         ├── duration and description
         ├── applied hourly rate
-        └── billable / invoiced state
+        ├── billable / invoiced state
+        └── invoiced date
 ```
 
 Clients, projects, and entries are stored in **Cloudflare D1** through **Drizzle ORM**. Deleting connected records is explicit: the interface asks whether orphaned work should be reassigned or deleted together with its parent.

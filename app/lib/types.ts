@@ -21,6 +21,7 @@ export type Entry = {
   description: string;
   billable: number;
   invoiced: number;
+  invoiced_at: string | null;
   hourly_rate_cents: number;
   rate_source: string;
   project_name: string;

@@ -34,6 +34,7 @@ export const timeEntries = sqliteTable(
     description: text("description"),
     billable: integer("billable", { mode: "boolean" }).notNull().default(true),
     invoiced: integer("invoiced", { mode: "boolean" }).notNull().default(false),
+    invoicedAt: text("invoiced_at"),
     hourlyRateCents: integer("hourly_rate_cents").notNull(),
     rateSource: text("rate_source").notNull(),
     currency: text("currency").notNull().default("EUR"),
