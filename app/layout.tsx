@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import "./calendar.css";
@@ -15,21 +15,27 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://tempo-personale.chatgpt.site"),
-  title: "Tempo — Registro attività",
-  description: "Registro personale di clienti, progetti e ore lavorate.",
+  title: "Timmy Timer — Il tempo giusto, al posto giusto",
+  description:
+    "Il time tracker con carattere: organizza clienti, progetti e ore insieme a Timmy.",
   manifest: "/manifest.webmanifest",
-  themeColor: "#243f36",
   openGraph: {
-    title: "Tempo — Registro attività",
-    description: "Il tuo tempo, con chiarezza.",
-    images: ["/og.png"],
+    title: "Timmy Timer",
+    description: "Il tempo giusto, al posto giusto.",
+    images: ["/og-timmy-timer.png"],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Tempo — Registro attività",
-    description: "Il tuo tempo, con chiarezza.",
-    images: ["/og.png"],
+    title: "Timmy Timer",
+    description: "Il tempo giusto, al posto giusto.",
+    images: ["/og-timmy-timer.png"],
   },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#2d2038",
 };
 
 export default function RootLayout({

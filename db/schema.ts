@@ -15,7 +15,7 @@ export const projects = sqliteTable(
       .notNull()
       .references(() => clients.id),
     name: text("name").notNull(),
-    color: text("color").notNull().default("#5b5bd6"),
+    color: text("color").notNull().default("#F06B52"),
     hourlyRateCents: integer("hourly_rate_cents"),
     archived: integer("archived", { mode: "boolean" }).notNull().default(false),
     createdAt: text("created_at").notNull(),

@@ -1,4 +1,4 @@
-import TempoApp from "./tempo-app";
+import TimmyTimer from "./tempo-app";
 export default function Home() {
-  return <TempoApp />;
+  return <TimmyTimer />;
 }
