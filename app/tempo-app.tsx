@@ -38,15 +38,15 @@ const NAVIGATION: Array<{
   icon: IconName;
   href: string;
 }> = [
-  { view: "registro", label: "Agenda", icon: "calendar", href: "/agenda" },
-  { view: "clienti", label: "Clienti", icon: "clients", href: "/clienti" },
+  { view: "registro", label: "Agenda", icon: "calendar", href: "/calendar" },
+  { view: "clienti", label: "Clienti", icon: "clients", href: "/clients" },
   {
     view: "progetti",
     label: "Progetti",
     icon: "projects",
-    href: "/progetti",
+    href: "/projects",
   },
-  { view: "report", label: "Report", icon: "reports", href: "/report" },
+  { view: "report", label: "Report", icon: "reports", href: "/reports" },
 ];
 
 export default function TimmyTimer({ view }: { view: View }) {

@@ -6,6 +6,6 @@ export const metadata: Metadata = {
   description: "Organizza e registra le attività della tua settimana.",
 };
 
-export default function AgendaPage() {
+export default function CalendarPage() {
   return <TimmyTimer view="registro" />;
 }

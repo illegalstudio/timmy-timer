@@ -6,6 +6,6 @@ export const metadata: Metadata = {
   description: "Analizza ore e valori ed esporta i tuoi report.",
 };
 
-export default function ReportPage() {
+export default function ReportsPage() {
   return <TimmyTimer view="report" />;
 }
