@@ -2,8 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Collection } from "./components/collection";
+import {
+  DeleteEntityModal,
+  type DeleteTarget,
+} from "./components/delete-entity-modal";
 import { EntryModal } from "./components/entry-modal";
+import { Icon, type IconName } from "./components/icon";
 import { Reports } from "./components/reports";
+import { Timmy } from "./components/timmy";
 import { CalendarPage } from "./components/week-calendar";
 import {
   entryAmount,
@@ -25,14 +31,14 @@ import type {
 } from "./lib/types";
 
 const EMPTY_DATA: AppData = { clients: [], projects: [], entries: [] };
-const NAVIGATION: Array<{ view: View; label: string }> = [
-  { view: "registro", label: "Registro" },
-  { view: "clienti", label: "Clienti" },
-  { view: "progetti", label: "Progetti" },
-  { view: "report", label: "Report" },
+const NAVIGATION: Array<{ view: View; label: string; icon: IconName }> = [
+  { view: "registro", label: "Agenda", icon: "calendar" },
+  { view: "clienti", label: "Clienti", icon: "clients" },
+  { view: "progetti", label: "Progetti", icon: "projects" },
+  { view: "report", label: "Report", icon: "reports" },
 ];
 
-export default function TempoApp() {
+export default function TimmyTimer() {
   const [data, setData] = useState<AppData>(EMPTY_DATA);
   const [view, setView] = useState<View>("registro");
   const [date, setDate] = useState(today());
@@ -41,8 +47,10 @@ export default function TempoApp() {
   const [editingEntry, setEditingEntry] = useState<Entry | null>(null);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [timmyNotice, setTimmyNotice] = useState("");
 
   useEffect(() => {
     if ("serviceWorker" in navigator) {
@@ -53,6 +61,12 @@ export default function TempoApp() {
       .catch(() => setError("Impossibile caricare i dati."))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    if (!timmyNotice) return;
+    const timeout = window.setTimeout(() => setTimmyNotice(""), 4_500);
+    return () => window.clearTimeout(timeout);
+  }, [timmyNotice]);
 
   const mutate: Mutate = async (method, body, url = "/api/data") => {
     setError("");
@@ -74,7 +88,13 @@ export default function TempoApp() {
   function openNewEntry(preset?: SlotPreset) {
     setEditingEntry(null);
     setSlotPreset(preset ?? null);
-    setModal(data.projects.length ? "entry" : "project");
+    setModal(
+      data.projects.length
+        ? "entry"
+        : data.clients.length
+          ? "project"
+          : "client",
+    );
   }
 
   function openEntry(entry: Entry) {
@@ -105,6 +125,8 @@ export default function TempoApp() {
   }
 
   async function saveModal(body: object) {
+    const savedType = modal;
+    const wasEditing = Boolean(editingEntry || editingClient || editingProject);
     let saved: boolean;
     if (editingEntry) {
       saved = await mutate("PATCH", {
@@ -127,7 +149,39 @@ export default function TempoApp() {
     } else {
       saved = await mutate("POST", body);
     }
-    if (saved) closeModal();
+    if (saved) {
+      closeModal();
+      setTimmyNotice(
+        wasEditing
+          ? "Modifiche salvate. Tutto in ordine!"
+          : creationMessage(savedType),
+      );
+    }
+  }
+
+  async function deleteEntity(
+    strategy: "reassign" | "delete",
+    targetId?: number,
+  ) {
+    if (!deleteTarget) return;
+    const entity = deleteTarget.type;
+    const deletedName = deleteTarget.item.name;
+    const deleted = await mutate(
+      "DELETE",
+      {
+        id: deleteTarget.item.id,
+        strategy,
+        targetId,
+      },
+      `/api/data?entity=${entity}`,
+    );
+    if (!deleted) return;
+    setDeleteTarget(null);
+    setTimmyNotice(
+      strategy === "reassign"
+        ? `${deletedName} eliminato. Le attività sono al sicuro!`
+        : `${deletedName} e le attività collegate sono stati eliminati.`,
+    );
   }
 
   return (
@@ -138,9 +192,19 @@ export default function TempoApp() {
         onNavigate={setView}
       />
       <section className="workspace">
-        {error && <div className="error">{error}</div>}
+        <MobileTimmyStatus dayMinutes={totals.dayMinutes} />
+        {error && (
+          <div className="error" role="alert">
+            <strong>Ops.</strong> {error}
+          </div>
+        )}
         {loading ? (
-          <div className="loading">Caricamento…</div>
+          <div className="loading">
+            <span className="loading-timer">
+              <Icon name="timer" />
+            </span>
+            <strong>Timmy sta preparando tutto…</strong>
+          </div>
         ) : (
           <AppView
             view={view}
@@ -152,6 +216,12 @@ export default function TempoApp() {
             openEntry={openEntry}
             openClient={openClient}
             openProject={openProject}
+            onDeleteClient={(client) =>
+              setDeleteTarget({ type: "client", item: client })
+            }
+            onDeleteProject={(project) =>
+              setDeleteTarget({ type: "project", item: project })
+            }
             setModal={setModal}
             mutate={mutate}
           />
@@ -169,6 +239,32 @@ export default function TempoApp() {
           onSave={saveModal}
         />
       )}
+      {deleteTarget && (
+        <DeleteEntityModal
+          target={deleteTarget}
+          data={data}
+          onClose={() => setDeleteTarget(null)}
+          onConfirm={deleteEntity}
+        />
+      )}
+      {timmyNotice && (
+        <div className="timmy-toast" role="status" aria-live="polite">
+          <span className="toast-timmy-wrap">
+            <Timmy className="toast-timmy" />
+          </span>
+          <span className="toast-copy">
+            <small>Timmy dice</small>
+            <strong>{timmyNotice}</strong>
+          </span>
+          <button
+            type="button"
+            onClick={() => setTimmyNotice("")}
+            aria-label="Chiudi messaggio di Timmy"
+          >
+            <Icon name="close" />
+          </button>
+        </div>
+      )}
     </main>
   );
 }
@@ -185,6 +281,8 @@ function AppView({
   openEntry,
   openClient,
   openProject,
+  onDeleteClient,
+  onDeleteProject,
   setModal,
   mutate,
 }: {
@@ -197,6 +295,8 @@ function AppView({
   openEntry: (entry: Entry) => void;
   openClient: (client: Client) => void;
   openProject: (project: Project) => void;
+  onDeleteClient: (client: Client) => void;
+  onDeleteProject: (project: Project) => void;
   setModal: (type: ModalType) => void;
   mutate: Mutate;
 }) {
@@ -208,6 +308,13 @@ function AppView({
         dayMinutes={totals.dayMinutes}
         dayAmount={totals.dayAmount}
         uninvoiced={totals.uninvoiced}
+        setupStage={
+          !data.clients.length
+            ? "client"
+            : !data.projects.length
+              ? "project"
+              : null
+        }
         onDateChange={setDate}
         onCreate={openNewEntry}
         onEdit={openEntry}
@@ -221,6 +328,7 @@ function AppView({
         data={data}
         onAdd={() => setModal("client")}
         onEdit={openClient}
+        onDelete={onDeleteClient}
       />
     );
   }
@@ -230,6 +338,7 @@ function AppView({
         data={data}
         onAdd={() => setModal(data.clients.length ? "project" : "client")}
         onEdit={openProject}
+        onDelete={onDeleteProject}
       />
     );
   }
@@ -248,30 +357,61 @@ function Sidebar({
   return (
     <aside className="sidebar">
       <div className="brand">
-        <span className="brand-mark">T</span>
-        <span>Tempo</span>
+        <span className="brand-mark">
+          <Icon name="timer" />
+        </span>
+        <span className="brand-copy">
+          <strong>Timmy Timer</strong>
+          <small>Time tracking, felice.</small>
+        </span>
       </div>
-      <nav>
+      <nav aria-label="Navigazione principale">
         {NAVIGATION.map((item) => (
           <button
             className={currentView === item.view ? "active" : ""}
             key={item.view}
             onClick={() => onNavigate(item.view)}
           >
-            {item.label}
+            <Icon name={item.icon} />
+            <span>{item.label}</span>
           </button>
         ))}
       </nav>
       <div className="sidebar-foot">
-        {new Date().toLocaleDateString("it-IT", {
-          day: "numeric",
-          month: "long",
-          year: "numeric",
-        })}
-        <br />
-        <strong>{formatDuration(dayMinutes)}</strong> registrate
+        <div className="today-card">
+          <span className="today-timmy-wrap">
+            <Timmy className="today-timmy" />
+          </span>
+          <span className="today-copy">
+            <small>Timmy dice</small>
+            <strong>{timmyDailyMessage(dayMinutes)}</strong>
+            <span>{formatDuration(dayMinutes)} registrate</span>
+          </span>
+        </div>
+        <p>
+          {new Date().toLocaleDateString("it-IT", {
+            weekday: "long",
+            day: "numeric",
+            month: "long",
+          })}
+        </p>
       </div>
     </aside>
+  );
+}
+
+function MobileTimmyStatus({ dayMinutes }: { dayMinutes: number }) {
+  return (
+    <div className="mobile-timmy-status">
+      <span className="mobile-timmy-wrap">
+        <Timmy className="mobile-timmy" />
+      </span>
+      <span>
+        <small>Timmy dice</small>
+        <strong>{timmyDailyMessage(dayMinutes)}</strong>
+      </span>
+      <b>{formatDuration(dayMinutes)}</b>
+    </div>
   );
 }
 
@@ -279,17 +419,21 @@ function ClientsView({
   data,
   onAdd,
   onEdit,
+  onDelete,
 }: {
   data: AppData;
   onAdd: () => void;
   onEdit: (client: Client) => void;
+  onDelete: (client: Client) => void;
 }) {
   return (
     <Collection
+      eyebrow="La tua rubrica"
       title="Clienti"
-      subtitle="Tariffe predefinite e storico dei clienti."
+      subtitle="Persone, aziende e tariffe: tutto in ordine."
       button="Nuovo cliente"
-      empty="Non hai ancora creato clienti."
+      emptyTitle="Iniziamo dalle persone."
+      emptyDescription="Aggiungi il primo cliente: Timmy terrà insieme progetti, tariffe e tempo dedicato."
       onAdd={onAdd}
     >
       {data.clients.map((client) => (
@@ -298,6 +442,9 @@ function ClientsView({
           key={client.id}
           onDoubleClick={() => onEdit(client)}
         >
+          <span className="collection-avatar" aria-hidden="true">
+            {client.name.slice(0, 1).toUpperCase()}
+          </span>
           <div>
             <strong>{client.name}</strong>
             <span>
@@ -309,14 +456,30 @@ function ClientsView({
               progetti
             </span>
           </div>
-          <div className="collection-actions">
+          <div
+            className="collection-actions"
+            onDoubleClick={(event) => event.stopPropagation()}
+          >
             <b>
               {client.hourly_rate_cents
                 ? `${formatMoney(client.hourly_rate_cents)}/ora`
                 : "Nessuna tariffa"}
             </b>
-            <button className="collection-edit" onClick={() => onEdit(client)}>
-              Modifica
+            <button
+              className="collection-edit"
+              onClick={() => onEdit(client)}
+              aria-label={`Modifica ${client.name}`}
+            >
+              <Icon name="pencil" />
+              <span>Modifica</span>
+            </button>
+            <button
+              className="collection-delete"
+              onClick={() => onDelete(client)}
+              aria-label={`Elimina ${client.name}`}
+            >
+              <Icon name="trash" />
+              <span>Elimina</span>
             </button>
           </div>
         </article>
@@ -329,17 +492,21 @@ function ProjectsView({
   data,
   onAdd,
   onEdit,
+  onDelete,
 }: {
   data: AppData;
   onAdd: () => void;
   onEdit: (project: Project) => void;
+  onDelete: (project: Project) => void;
 }) {
   return (
     <Collection
+      eyebrow="Il tuo lavoro"
       title="Progetti"
-      subtitle="Ogni progetto appartiene a un cliente."
+      subtitle="Colora, organizza e ritrova ogni incarico."
       button="Nuovo progetto"
-      empty="Crea prima un cliente, poi il suo primo progetto."
+      emptyTitle="Diamo un nome al prossimo lavoro."
+      emptyDescription="Crea un cliente e poi il suo primo progetto. Da lì, ogni minuto troverà il posto giusto."
       onAdd={onAdd}
     >
       {data.projects.map((project) => (
@@ -361,14 +528,30 @@ function ProjectsView({
               }
             </span>
           </div>
-          <div className="collection-actions">
+          <div
+            className="collection-actions"
+            onDoubleClick={(event) => event.stopPropagation()}
+          >
             <b>
               {project.hourly_rate_cents
                 ? `${formatMoney(project.hourly_rate_cents)}/ora`
                 : "Tariffa cliente"}
             </b>
-            <button className="collection-edit" onClick={() => onEdit(project)}>
-              Modifica
+            <button
+              className="collection-edit"
+              onClick={() => onEdit(project)}
+              aria-label={`Modifica ${project.name}`}
+            >
+              <Icon name="pencil" />
+              <span>Modifica</span>
+            </button>
+            <button
+              className="collection-delete"
+              onClick={() => onDelete(project)}
+              aria-label={`Elimina ${project.name}`}
+            >
+              <Icon name="trash" />
+              <span>Elimina</span>
             </button>
           </div>
         </article>
@@ -400,4 +583,17 @@ async function loadData(): Promise<AppData> {
   const response = await fetch("/api/data");
   if (!response.ok) throw new Error("Unable to load data");
   return response.json();
+}
+
+function timmyDailyMessage(minutes: number) {
+  if (minutes === 0) return "Pronti a partire?";
+  if (minutes < 240) return "Bel ritmo!";
+  if (minutes < 480) return "Ottimo lavoro.";
+  return "Tempo di staccare?";
+}
+
+function creationMessage(type: ModalType | null) {
+  if (type === "client") return "Cliente aggiunto. Primo passo fatto!";
+  if (type === "project") return "Progetto pronto. Ora si parte!";
+  return "Slot segnato. Bel ritmo!";
 }

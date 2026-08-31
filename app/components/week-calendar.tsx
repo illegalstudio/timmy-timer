@@ -1,6 +1,13 @@
 "use client";
 
-import { type PointerEvent as ReactPointerEvent, useState } from "react";
+import {
+  type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
+  useEffect,
+  useState,
+} from "react";
+import { Icon } from "./icon";
+import { Timmy } from "./timmy";
 import { formatDuration, formatMoney, today } from "../lib/time";
 import type { Entry, Mutate, SlotPreset } from "../lib/types";
 
@@ -14,6 +21,12 @@ type Drag = SlotPreset & {
   id: number;
   mode: "move" | "resize";
   pointerY: number;
+};
+type ContextMenuState = {
+  entry: Entry;
+  x: number;
+  y: number;
+  confirmDelete: boolean;
 };
 
 type WeekCalendarProps = {
@@ -40,7 +53,37 @@ export function CalendarView({
   } | null>(null);
   const [drag, setDrag] = useState<Drag | null>(null);
   const [preview, setPreview] = useState<Preview>({});
+  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const calendarHeight = (END_HOUR - START_HOUR) * 60 * PIXELS_PER_MINUTE;
+
+  useEffect(() => {
+    if (!contextMenu) return;
+
+    function handleOutside(event: PointerEvent) {
+      if ((event.target as Element).closest(".entry-context-menu")) return;
+      setContextMenu(null);
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setContextMenu(null);
+    }
+
+    function closeMenu() {
+      setContextMenu(null);
+    }
+
+    window.addEventListener("pointerdown", handleOutside);
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("resize", closeMenu);
+    window.addEventListener("scroll", closeMenu, true);
+    return () => {
+      window.removeEventListener("pointerdown", handleOutside);
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("resize", closeMenu);
+      window.removeEventListener("scroll", closeMenu, true);
+    };
+  }, [contextMenu]);
 
   const visibleEntries = entries.filter((entry) => {
     const entryStart = preview[entry.id]?.start ?? new Date(entry.started_at);
@@ -88,6 +131,7 @@ export function CalendarView({
     mode: Drag["mode"],
     event: ReactPointerEvent,
   ) {
+    if (event.button !== 0) return;
     event.preventDefault();
     event.stopPropagation();
     (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
@@ -133,51 +177,104 @@ export function CalendarView({
     setPreview({});
   }
 
+  function openContextMenu(entry: Entry, event: ReactMouseEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    const menuWidth = 220;
+    const menuHeight = 170;
+    setDeleting(false);
+    setContextMenu({
+      entry,
+      x: Math.max(
+        8,
+        Math.min(event.clientX, window.innerWidth - menuWidth - 8),
+      ),
+      y: Math.max(
+        8,
+        Math.min(event.clientY, window.innerHeight - menuHeight - 8),
+      ),
+      confirmDelete: false,
+    });
+  }
+
+  async function deleteEntry() {
+    if (!contextMenu) return;
+    setDeleting(true);
+    const deleted = await mutate(
+      "DELETE",
+      undefined,
+      `/api/data?id=${contextMenu.entry.id}`,
+    );
+    setDeleting(false);
+    if (deleted) setContextMenu(null);
+  }
+
   return (
-    <div className="week-panel">
-      <div className="week-scroll">
-        <CalendarHeader days={days} />
-        <div className="week-body" style={{ height: calendarHeight }}>
-          <TimeAxis />
-          <div className="day-columns">
-            {days.map((day, dayIndex) => {
-              const dayKey = day.toLocaleDateString("sv-SE");
-              const dayEntries = visibleEntries.filter(
-                (entry) =>
-                  effectiveStart(entry, preview).toLocaleDateString("sv-SE") ===
-                  dayKey,
-              );
-              return (
-                <div
-                  className="day-column"
-                  key={day.toISOString()}
-                  onPointerDown={(event) => beginCreate(dayIndex, event)}
-                  onPointerMove={moveCreate}
-                  onPointerUp={finishCreate}
-                >
-                  <GridLines />
-                  {draft?.day === dayIndex && <DraftSlot draft={draft} />}
-                  {dayEntries.map((entry) => (
-                    <CalendarSlot
-                      key={entry.id}
-                      entry={entry}
-                      preview={preview[entry.id]}
-                      layout={
-                        layouts.get(entry.id) ?? { column: 0, columns: 1 }
-                      }
-                      onEdit={onEdit}
-                      onPointerDown={beginDrag}
-                      onPointerMove={moveDrag}
-                      onPointerUp={finishDrag}
-                    />
-                  ))}
-                </div>
-              );
-            })}
+    <>
+      <div className="week-panel">
+        <div className="week-scroll">
+          <CalendarHeader days={days} />
+          <div className="week-body" style={{ height: calendarHeight }}>
+            <TimeAxis />
+            <div className="day-columns">
+              {days.map((day, dayIndex) => {
+                const dayKey = day.toLocaleDateString("sv-SE");
+                const dayEntries = visibleEntries.filter(
+                  (entry) =>
+                    effectiveStart(entry, preview).toLocaleDateString(
+                      "sv-SE",
+                    ) === dayKey,
+                );
+                return (
+                  <div
+                    className="day-column"
+                    key={day.toISOString()}
+                    onPointerDown={(event) => beginCreate(dayIndex, event)}
+                    onPointerMove={moveCreate}
+                    onPointerUp={finishCreate}
+                  >
+                    <GridLines />
+                    {draft?.day === dayIndex && <DraftSlot draft={draft} />}
+                    {dayEntries.map((entry) => (
+                      <CalendarSlot
+                        key={entry.id}
+                        entry={entry}
+                        preview={preview[entry.id]}
+                        layout={
+                          layouts.get(entry.id) ?? { column: 0, columns: 1 }
+                        }
+                        onEdit={onEdit}
+                        onPointerDown={beginDrag}
+                        onPointerMove={moveDrag}
+                        onPointerUp={finishDrag}
+                        onContextMenu={openContextMenu}
+                      />
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
-    </div>
+      {contextMenu && (
+        <EntryContextMenu
+          menu={contextMenu}
+          deleting={deleting}
+          onEdit={() => {
+            setContextMenu(null);
+            onEdit(contextMenu.entry);
+          }}
+          onRequestDelete={() =>
+            setContextMenu({ ...contextMenu, confirmDelete: true })
+          }
+          onCancelDelete={() =>
+            setContextMenu({ ...contextMenu, confirmDelete: false })
+          }
+          onDelete={deleteEntry}
+        />
+      )}
+    </>
   );
 }
 
@@ -246,6 +343,7 @@ function CalendarSlot({
   onPointerDown,
   onPointerMove,
   onPointerUp,
+  onContextMenu,
 }: {
   entry: Entry;
   preview?: SlotPreset;
@@ -258,6 +356,7 @@ function CalendarSlot({
   ) => void;
   onPointerMove: (event: ReactPointerEvent) => void;
   onPointerUp: () => void;
+  onContextMenu: (entry: Entry, event: ReactMouseEvent) => void;
 }) {
   const slot = preview ?? {
     start: new Date(entry.started_at),
@@ -277,6 +376,7 @@ function CalendarSlot({
         top,
         height,
         background: entry.project_color,
+        color: readableTextColor(entry.project_color),
         left: `calc(${(layout.column * 100) / layout.columns}% + 3px)`,
         width: `calc(${100 / layout.columns}% - 6px)`,
         right: "auto",
@@ -289,6 +389,7 @@ function CalendarSlot({
       }}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
+      onContextMenu={(event) => onContextMenu(entry, event)}
     >
       <strong>{entry.project_name}</strong>
       <span>
@@ -309,6 +410,75 @@ function CalendarSlot({
         onPointerUp={onPointerUp}
       />
     </article>
+  );
+}
+
+function EntryContextMenu({
+  menu,
+  deleting,
+  onEdit,
+  onRequestDelete,
+  onCancelDelete,
+  onDelete,
+}: {
+  menu: ContextMenuState;
+  deleting: boolean;
+  onEdit: () => void;
+  onRequestDelete: () => void;
+  onCancelDelete: () => void;
+  onDelete: () => void;
+}) {
+  return (
+    <div
+      className="entry-context-menu"
+      style={{ left: menu.x, top: menu.y }}
+      role="menu"
+      aria-label={`Azioni per ${menu.entry.project_name}`}
+      onPointerDown={(event) => event.stopPropagation()}
+    >
+      <div className="context-entry-head">
+        <span style={{ background: menu.entry.project_color }} />
+        <span>
+          <strong>{menu.entry.project_name}</strong>
+          <small>{menu.entry.client_name}</small>
+        </span>
+      </div>
+      {menu.confirmDelete ? (
+        <div className="context-confirm">
+          <strong>Eliminare questo slot?</strong>
+          <span>L’azione non può essere annullata.</span>
+          <div>
+            <button type="button" onClick={onCancelDelete} disabled={deleting}>
+              Annulla
+            </button>
+            <button
+              className="context-delete-confirm"
+              type="button"
+              onClick={onDelete}
+              disabled={deleting}
+            >
+              {deleting ? "Elimino…" : "Elimina"}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="context-actions">
+          <button type="button" role="menuitem" onClick={onEdit}>
+            <Icon name="pencil" />
+            Modifica
+          </button>
+          <button
+            className="danger"
+            type="button"
+            role="menuitem"
+            onClick={onRequestDelete}
+          >
+            <Icon name="trash" />
+            Elimina
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -406,12 +576,24 @@ function dateAtMinutes(day: Date, minutes: number) {
   return value;
 }
 
+function readableTextColor(color: string) {
+  const hex = color.replace("#", "");
+  if (!/^[0-9a-f]{6}$/i.test(hex)) return "#ffffff";
+  const [red, green, blue] = [0, 2, 4].map((index) =>
+    Number.parseInt(hex.slice(index, index + 2), 16),
+  );
+  return red * 0.299 + green * 0.587 + blue * 0.114 > 165
+    ? "#2d2038"
+    : "#ffffff";
+}
+
 export function CalendarPage({
   entries,
   date,
   dayMinutes,
   dayAmount,
   uninvoiced,
+  setupStage,
   onDateChange,
   onCreate,
   onEdit,
@@ -422,6 +604,7 @@ export function CalendarPage({
   dayMinutes: number;
   dayAmount: number;
   uninvoiced: number;
+  setupStage: "client" | "project" | null;
   onDateChange: (date: string) => void;
   onCreate: (preset?: SlotPreset) => void;
   onEdit: (entry: Entry) => void;
@@ -431,13 +614,17 @@ export function CalendarPage({
     <>
       <header className="topbar calendar-top">
         <div>
-          <p className="eyebrow">Calendario settimanale</p>
-          <h1>Il tuo tempo</h1>
+          <p className="eyebrow">Agenda settimanale</p>
+          <h1>La tua settimana</h1>
+          <p className="page-subtitle">{formatWeekRange(date)}</p>
         </div>
         <div className="calendar-actions">
           <div className="date-nav">
-            <button onClick={() => onDateChange(changeByDays(date, -7))}>
-              ‹
+            <button
+              onClick={() => onDateChange(changeByDays(date, -7))}
+              aria-label="Settimana precedente"
+            >
+              <Icon name="chevron-left" />
             </button>
             <input
               aria-label="Settimana"
@@ -446,35 +633,113 @@ export function CalendarPage({
               onChange={(event) => onDateChange(event.target.value)}
             />
             <button onClick={() => onDateChange(today())}>Oggi</button>
-            <button onClick={() => onDateChange(changeByDays(date, 7))}>
-              ›
+            <button
+              onClick={() => onDateChange(changeByDays(date, 7))}
+              aria-label="Settimana successiva"
+            >
+              <Icon name="chevron-right" />
             </button>
           </div>
           <button className="primary" onClick={() => onCreate()}>
-            ＋ Nuovo slot
+            <Icon name="plus" />
+            Nuovo slot
           </button>
         </div>
       </header>
-      <div className="summary-strip">
-        <span>
-          <b>{formatDuration(dayMinutes)}</b> oggi
-        </span>
-        <span>
-          <b>{formatMoney(dayAmount)}</b> oggi
-        </span>
-        <span>
-          <b>{formatMoney(uninvoiced)}</b> da fatturare
-        </span>
-        <small>Trascina per creare · doppio clic per modificare</small>
-      </div>
-      <CalendarView
-        anchor={date}
-        entries={entries}
-        onCreate={onCreate}
-        onEdit={onEdit}
-        mutate={mutate}
-      />
+      {setupStage ? (
+        <WelcomePanel setupStage={setupStage} onCreate={onCreate} />
+      ) : (
+        <>
+          <div className="summary-strip">
+            <div className="summary-item">
+              <span className="summary-icon butter">
+                <Icon name="clock" />
+              </span>
+              <span>
+                <small>Tempo oggi</small>
+                <b>{formatDuration(dayMinutes)}</b>
+              </span>
+            </div>
+            <div className="summary-item">
+              <span className="summary-icon mint">
+                <Icon name="coins" />
+              </span>
+              <span>
+                <small>Valore oggi</small>
+                <b>{formatMoney(dayAmount)}</b>
+              </span>
+            </div>
+            <div className="summary-item">
+              <span className="summary-icon coral">
+                <Icon name="receipt" />
+              </span>
+              <span>
+                <small>Da fatturare</small>
+                <b>{formatMoney(uninvoiced)}</b>
+              </span>
+            </div>
+            <small className="calendar-hint">
+              Trascina per creare · clic destro per le azioni
+            </small>
+          </div>
+          <CalendarView
+            anchor={date}
+            entries={entries}
+            onCreate={onCreate}
+            onEdit={onEdit}
+            mutate={mutate}
+          />
+        </>
+      )}
     </>
+  );
+}
+
+function WelcomePanel({
+  setupStage,
+  onCreate,
+}: {
+  setupStage: "client" | "project";
+  onCreate: () => void;
+}) {
+  const needsClient = setupStage === "client";
+  return (
+    <section className="welcome-panel">
+      <div className="welcome-copy">
+        <span className="welcome-badge">
+          <Icon name="sparkles" />
+          Piacere, sono Timmy
+        </span>
+        <h2>Facciamo spazio al tempo che conta.</h2>
+        <p>
+          {needsClient
+            ? "Inizia aggiungendo il tuo primo cliente. Poi creeremo insieme un progetto e il primo slot di lavoro."
+            : "Ottimo, il cliente c’è. Ora dagli un progetto: poi la tua agenda sarà pronta per partire."}
+        </p>
+        <div className="setup-steps" aria-label="Configurazione iniziale">
+          <span className={needsClient ? "current" : "done"}>
+            <b>{needsClient ? "1" : "✓"}</b> Cliente
+          </span>
+          <i />
+          <span className={!needsClient ? "current" : ""}>
+            <b>2</b> Progetto
+          </span>
+          <i />
+          <span>
+            <b>3</b> Primo slot
+          </span>
+        </div>
+        <button className="primary welcome-action" onClick={onCreate}>
+          <Icon name="plus" />
+          {needsClient ? "Aggiungi il primo cliente" : "Crea il primo progetto"}
+        </button>
+      </div>
+      <div className="welcome-art" aria-hidden="true">
+        <span className="art-sun" />
+        <span className="art-squiggle">∿∿</span>
+        <Timmy className="welcome-timmy" priority />
+      </div>
+    </section>
   );
 }
 
@@ -482,4 +747,20 @@ function changeByDays(value: string, days: number) {
   const date = new Date(`${value}T12:00:00`);
   date.setDate(date.getDate() + days);
   return date.toLocaleDateString("sv-SE");
+}
+
+function formatWeekRange(value: string) {
+  const start = getWeekStart(value);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 6);
+  const startLabel = start.toLocaleDateString("it-IT", {
+    day: "numeric",
+    month: start.getMonth() === end.getMonth() ? undefined : "short",
+  });
+  const endLabel = end.toLocaleDateString("it-IT", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+  return `${startLabel} – ${endLabel}`;
 }

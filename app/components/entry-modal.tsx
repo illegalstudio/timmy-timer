@@ -2,6 +2,8 @@
 
 import { type FormEvent, useEffect, useState } from "react";
 import { toLocalInput } from "../lib/time";
+import { Icon } from "./icon";
+import { SmartSelect } from "./smart-select";
 import type {
   AppData,
   Client,
@@ -71,20 +73,46 @@ export function EntryModal({
   return (
     <div
       className="modal-backdrop"
+      role="presentation"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
     >
-      <form className="modal" onSubmit={handleSubmit}>
+      <form
+        className="modal"
+        onSubmit={handleSubmit}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-title"
+      >
         <div className="modal-head">
-          <div>
-            <p className="eyebrow">
-              {isEditing ? "Modifica elemento" : "Nuovo elemento"}
-            </p>
-            <h2>{modalTitle(type)}</h2>
+          <div className="modal-title-group">
+            <span className="modal-icon">
+              <Icon
+                name={
+                  type === "entry"
+                    ? "clock"
+                    : type === "client"
+                      ? "clients"
+                      : "projects"
+                }
+              />
+            </span>
+            <div>
+              <p className="eyebrow">
+                {isEditing ? "Metti a punto" : "Aggiungi alla tua agenda"}
+              </p>
+              <h2 id="modal-title">{modalTitle(type)}</h2>
+              <p>{modalDescription(type)}</p>
+            </div>
           </div>
-          <button type="button" onClick={onClose} aria-label="Chiudi">
-            ×
+          <button
+            className="modal-close"
+            type="button"
+            onClick={onClose}
+            aria-label="Chiudi"
+          >
+            <Icon name="close" />
           </button>
         </div>
 
@@ -147,16 +175,23 @@ function ProjectFields({
 }) {
   return (
     <>
-      <label>
-        Cliente
-        <select name="clientId" required defaultValue={project?.client_id}>
-          {data.clients.map((client) => (
-            <option value={client.id} key={client.id}>
-              {client.name}
-            </option>
-          ))}
-        </select>
-      </label>
+      <SmartSelect
+        label="Cliente"
+        name="clientId"
+        required
+        defaultValue={String(project?.client_id ?? data.clients[0]?.id ?? "")}
+        searchPlaceholder="Cerca cliente…"
+        options={data.clients.map((client) => ({
+          value: String(client.id),
+          label: client.name,
+          hint: client.hourly_rate_cents
+            ? `${(client.hourly_rate_cents / 100).toLocaleString("it-IT", {
+                style: "currency",
+                currency: "EUR",
+              })}/ora`
+            : "Nessuna tariffa predefinita",
+        }))}
+      />
       <label>
         Nome progetto
         <input name="name" required autoFocus defaultValue={project?.name} />
@@ -167,7 +202,7 @@ function ProjectFields({
           <input
             name="color"
             type="color"
-            defaultValue={project?.color ?? "#5b5bd6"}
+            defaultValue={project?.color ?? "#F06B52"}
           />
         </label>
         <label>
@@ -202,21 +237,25 @@ function TimeEntryFields({
 }) {
   return (
     <>
-      <label>
-        Progetto
-        <select name="projectId" required defaultValue={entry?.project_id}>
-          {data.projects.map((project) => (
-            <option value={project.id} key={project.id}>
-              {
-                data.clients.find((client) => client.id === project.client_id)
-                  ?.name
-              }
-              {" — "}
-              {project.name}
-            </option>
-          ))}
-        </select>
-      </label>
+      <SmartSelect
+        label="Progetto"
+        name="projectId"
+        required
+        defaultValue={String(entry?.project_id ?? data.projects[0]?.id ?? "")}
+        searchPlaceholder="Cerca progetto o cliente…"
+        options={data.projects.map((project) => {
+          const clientName = data.clients.find(
+            (client) => client.id === project.client_id,
+          )?.name;
+          return {
+            value: String(project.id),
+            label: project.name,
+            hint: clientName,
+            keywords: clientName,
+            color: project.color,
+          };
+        })}
+      />
       <div className="form-grid">
         <label>
           Inizio
@@ -272,6 +311,12 @@ function roundedCurrentHour() {
 
 function modalTitle(type: ModalType) {
   if (type === "entry") return "Slot di tempo";
-  if (type === "client") return "Cliente";
-  return "Progetto";
+  if (type === "client") return "Dettagli cliente";
+  return "Dettagli progetto";
+}
+
+function modalDescription(type: ModalType) {
+  if (type === "entry") return "Cosa hai fatto e quanto tempo ci hai dedicato?";
+  if (type === "client") return "Una casa ordinata per progetti e tariffe.";
+  return "Dai un nome e un colore al lavoro da tracciare.";
 }

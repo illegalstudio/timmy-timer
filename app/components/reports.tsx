@@ -1,6 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { EmptyState } from "./empty-state";
+import { Icon, type IconName } from "./icon";
+import { SmartSelect } from "./smart-select";
 import {
   entryAmount,
   entryMinutes,
@@ -165,7 +168,7 @@ export function Reports({ entries }: { entries: Entry[] }) {
       .join("\n");
     download(
       `\ufeff${csv}`,
-      `tempo_${from}_${to}.csv`,
+      `timmy_timer_${from}_${to}.csv`,
       "text/csv;charset=utf-8",
     );
   }
@@ -174,7 +177,7 @@ export function Reports({ entries }: { entries: Entry[] }) {
     const { jsPDF } = await import("jspdf");
     const document = new jsPDF();
     document.setFontSize(20);
-    document.text("Report attività", 16, 20);
+    document.text("Timmy Timer · Report attività", 16, 20);
     document.setFontSize(10);
     document.text(`${formatDate(from)} – ${formatDate(to)}`, 16, 28);
 
@@ -208,91 +211,121 @@ export function Reports({ entries }: { entries: Entry[] }) {
       16,
       y + 9,
     );
-    document.save(`tempo_${from}_${to}.pdf`);
+    document.save(`timmy_timer_${from}_${to}.pdf`);
   }
 
   return (
     <>
       <header className="topbar">
         <div>
-          <p className="eyebrow">Esportazioni</p>
-          <h1>Report</h1>
+          <p className="eyebrow">Numeri che parlano</p>
+          <h1>Il tuo tempo, in sintesi</h1>
           <p className="page-subtitle">
-            Riepiloga ed esporta le attività registrate.
+            Filtra le attività e porta i risultati dove ti servono.
           </p>
         </div>
         <div className="export-actions">
-          <button onClick={exportCsv}>CSV</button>
+          <button className="button-secondary" onClick={exportCsv}>
+            <Icon name="download" />
+            CSV
+          </button>
           <button className="primary" onClick={exportPdf}>
+            <Icon name="download" />
             PDF
           </button>
         </div>
       </header>
-      <div className="report-filters">
-        <label>
-          Periodo
-          <select
+      <div className="report-filter-panel">
+        <div className="filter-heading">
+          <span className="filter-icon">
+            <Icon name="reports" />
+          </span>
+          <div>
+            <strong>Costruisci il tuo report</strong>
+            <small>Combina periodo, cliente e progetto.</small>
+          </div>
+        </div>
+        <div className="report-filters">
+          <SmartSelect
+            label="Periodo"
             value={preset}
-            onChange={(event) => selectPreset(event.target.value as Preset)}
-          >
-            {PRESETS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Dal
-          <input
-            type="date"
-            value={from}
-            onChange={(event) => changeFrom(event.target.value)}
+            onValueChange={(value) => selectPreset(value as Preset)}
+            searchPlaceholder="Cerca periodo…"
+            options={PRESETS}
           />
-        </label>
-        <label>
-          Al
-          <input
-            type="date"
-            value={to}
-            onChange={(event) => changeTo(event.target.value)}
-          />
-        </label>
-        <label>
-          Cliente
-          <select
+          <label>
+            Dal
+            <input
+              type="date"
+              value={from}
+              onChange={(event) => changeFrom(event.target.value)}
+            />
+          </label>
+          <label>
+            Al
+            <input
+              type="date"
+              value={to}
+              onChange={(event) => changeTo(event.target.value)}
+            />
+          </label>
+          <SmartSelect
+            label="Cliente"
             value={clientId}
-            onChange={(event) => changeClient(event.target.value)}
-          >
-            <option value="all">Tutti i clienti</option>
-            {clients.map((client) => (
-              <option key={client.id} value={client.id}>
-                {client.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Progetto
-          <select
+            onValueChange={changeClient}
+            searchPlaceholder="Cerca cliente…"
+            options={[
+              { value: "all", label: "Tutti i clienti" },
+              ...clients.map((client) => ({
+                value: String(client.id),
+                label: client.name,
+              })),
+            ]}
+          />
+          <SmartSelect
+            label="Progetto"
             value={projectId}
-            onChange={(event) => setProjectId(event.target.value)}
-          >
-            <option value="all">Tutti i progetti</option>
-            {projects.map((project) => (
-              <option key={project.id} value={project.id}>
-                {project.name}
-              </option>
-            ))}
-          </select>
-        </label>
+            onValueChange={setProjectId}
+            searchPlaceholder="Cerca progetto…"
+            options={[
+              { value: "all", label: "Tutti i progetti" },
+              ...projects.map((project) => ({
+                value: String(project.id),
+                label: project.name,
+                hint: clients.find((client) => client.id === project.clientId)
+                  ?.name,
+              })),
+            ]}
+          />
+        </div>
       </div>
       <div className="summary-grid report-summary">
-        <Summary label="Tempo" value={formatDuration(totalMinutes)} />
-        <Summary label="Importo" value={formatMoney(totalCents)} />
-        <Summary label="Attività" value={String(filtered.length)} accent />
+        <Summary
+          icon="clock"
+          label="Tempo totale"
+          value={formatDuration(totalMinutes)}
+        />
+        <Summary
+          icon="coins"
+          label="Valore totale"
+          value={formatMoney(totalCents)}
+        />
+        <Summary
+          icon="sparkles"
+          label="Attività"
+          value={String(filtered.length)}
+          accent
+        />
       </div>
       <div className="panel report-table">
+        {!!filtered.length && (
+          <div className="report-row report-head" aria-hidden="true">
+            <span>Data</span>
+            <span>Attività</span>
+            <span>Durata</span>
+            <span>Importo</span>
+          </div>
+        )}
         {filtered.map((entry) => (
           <div className="report-row" key={entry.id}>
             <span>
@@ -307,7 +340,10 @@ export function Reports({ entries }: { entries: Entry[] }) {
           </div>
         ))}
         {!filtered.length && (
-          <div className="empty">Nessuna attività nell’intervallo.</div>
+          <EmptyState
+            title="I numeri arriveranno presto."
+            description="Registra il primo slot oppure cambia intervallo: Timmy trasformerà il tempo in un riepilogo chiaro."
+          />
         )}
       </div>
     </>
@@ -317,15 +353,20 @@ export function Reports({ entries }: { entries: Entry[] }) {
 function Summary({
   label,
   value,
+  icon,
   accent = false,
 }: {
   label: string;
   value: string;
+  icon: IconName;
   accent?: boolean;
 }) {
   return (
     <div className={`summary-card ${accent ? "accent" : ""}`}>
-      <span>{label}</span>
+      <span className="summary-card-icon">
+        <Icon name={icon} />
+      </span>
+      <span className="summary-label">{label}</span>
       <strong>{value}</strong>
     </div>
   );
