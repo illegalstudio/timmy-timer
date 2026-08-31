@@ -9,7 +9,7 @@ async function ensureSchema() {
       `CREATE TABLE IF NOT EXISTS clients (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, hourly_rate_cents INTEGER, archived INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL)`,
     ),
     db.prepare(
-      `CREATE TABLE IF NOT EXISTS projects (id INTEGER PRIMARY KEY AUTOINCREMENT, client_id INTEGER NOT NULL REFERENCES clients(id), name TEXT NOT NULL, color TEXT NOT NULL DEFAULT '#5b5bd6', hourly_rate_cents INTEGER, archived INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL)`,
+      `CREATE TABLE IF NOT EXISTS projects (id INTEGER PRIMARY KEY AUTOINCREMENT, client_id INTEGER NOT NULL REFERENCES clients(id), name TEXT NOT NULL, color TEXT NOT NULL DEFAULT '#F06B52', hourly_rate_cents INTEGER, archived INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL)`,
     ),
     db.prepare(
       `CREATE TABLE IF NOT EXISTS time_entries (id INTEGER PRIMARY KEY AUTOINCREMENT, project_id INTEGER NOT NULL REFERENCES projects(id), started_at TEXT NOT NULL, ended_at TEXT NOT NULL, description TEXT, billable INTEGER NOT NULL DEFAULT 1, invoiced INTEGER NOT NULL DEFAULT 0, hourly_rate_cents INTEGER NOT NULL, rate_source TEXT NOT NULL, currency TEXT NOT NULL DEFAULT 'EUR', created_at TEXT NOT NULL, updated_at TEXT NOT NULL)`,
@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
       .bind(
         Number(body.clientId),
         String(body.name).trim(),
-        String(body.color || "#5b5bd6"),
+        String(body.color || "#F06B52"),
         rate,
         now,
       )
@@ -186,7 +186,7 @@ export async function PATCH(request: NextRequest) {
       .bind(
         Number(body.clientId),
         String(body.name).trim(),
-        String(body.color || "#5b5bd6"),
+        String(body.color || "#F06B52"),
         rate,
         Number(body.id),
       )
@@ -201,7 +201,113 @@ export async function PATCH(request: NextRequest) {
 }
 export async function DELETE(request: NextRequest) {
   await ensureSchema();
-  const id = Number(new URL(request.url).searchParams.get("id"));
-  await env.DB.prepare("DELETE FROM time_entries WHERE id=?").bind(id).run();
+  const url = new URL(request.url);
+  const entity = url.searchParams.get("entity");
+
+  if (!entity) {
+    const id = Number(url.searchParams.get("id"));
+    if (!Number.isInteger(id) || id <= 0)
+      return NextResponse.json({ error: "Slot non valido" }, { status: 400 });
+    await env.DB.prepare("DELETE FROM time_entries WHERE id=?").bind(id).run();
+    return GET();
+  }
+
+  if (entity !== "client" && entity !== "project")
+    return NextResponse.json({ error: "Entità non valida" }, { status: 400 });
+
+  const body = (await request.json().catch(() => ({}))) as Record<
+    string,
+    unknown
+  >;
+  const id = Number(body.id);
+  const strategy = body.strategy;
+  const targetId = Number(body.targetId);
+
+  if (!Number.isInteger(id) || id <= 0)
+    return NextResponse.json({ error: "Elemento non valido" }, { status: 400 });
+  if (strategy !== "reassign" && strategy !== "delete")
+    return NextResponse.json({ error: "Scelta non valida" }, { status: 400 });
+  if (
+    strategy === "reassign" &&
+    (!Number.isInteger(targetId) || targetId <= 0 || targetId === id)
+  )
+    return NextResponse.json(
+      { error: "Destinazione non valida" },
+      { status: 400 },
+    );
+
+  if (entity === "project") {
+    const project = await env.DB.prepare(
+      "SELECT id FROM projects WHERE id=? AND archived=0",
+    )
+      .bind(id)
+      .first();
+    if (!project)
+      return NextResponse.json(
+        { error: "Progetto non trovato" },
+        { status: 404 },
+      );
+
+    if (strategy === "reassign") {
+      const target = await env.DB.prepare(
+        "SELECT id FROM projects WHERE id=? AND id<>? AND archived=0",
+      )
+        .bind(targetId, id)
+        .first();
+      if (!target)
+        return NextResponse.json(
+          { error: "Progetto di destinazione non valido" },
+          { status: 400 },
+        );
+      await env.DB.batch([
+        env.DB.prepare(
+          "UPDATE time_entries SET project_id=?, updated_at=? WHERE project_id=?",
+        ).bind(targetId, new Date().toISOString(), id),
+        env.DB.prepare("DELETE FROM projects WHERE id=?").bind(id),
+      ]);
+    } else {
+      await env.DB.batch([
+        env.DB.prepare("DELETE FROM time_entries WHERE project_id=?").bind(id),
+        env.DB.prepare("DELETE FROM projects WHERE id=?").bind(id),
+      ]);
+    }
+    return GET();
+  }
+
+  const client = await env.DB.prepare(
+    "SELECT id FROM clients WHERE id=? AND archived=0",
+  )
+    .bind(id)
+    .first();
+  if (!client)
+    return NextResponse.json({ error: "Cliente non trovato" }, { status: 404 });
+
+  if (strategy === "reassign") {
+    const target = await env.DB.prepare(
+      "SELECT id FROM clients WHERE id=? AND id<>? AND archived=0",
+    )
+      .bind(targetId, id)
+      .first();
+    if (!target)
+      return NextResponse.json(
+        { error: "Cliente di destinazione non valido" },
+        { status: 400 },
+      );
+    await env.DB.batch([
+      env.DB.prepare("UPDATE projects SET client_id=? WHERE client_id=?").bind(
+        targetId,
+        id,
+      ),
+      env.DB.prepare("DELETE FROM clients WHERE id=?").bind(id),
+    ]);
+  } else {
+    await env.DB.batch([
+      env.DB.prepare(
+        "DELETE FROM time_entries WHERE project_id IN (SELECT id FROM projects WHERE client_id=?)",
+      ).bind(id),
+      env.DB.prepare("DELETE FROM projects WHERE client_id=?").bind(id),
+      env.DB.prepare("DELETE FROM clients WHERE id=?").bind(id),
+    ]);
+  }
   return GET();
 }
