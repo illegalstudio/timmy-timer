@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Collection } from "./components/collection";
 import {
@@ -31,16 +32,25 @@ import type {
 } from "./lib/types";
 
 const EMPTY_DATA: AppData = { clients: [], projects: [], entries: [] };
-const NAVIGATION: Array<{ view: View; label: string; icon: IconName }> = [
-  { view: "registro", label: "Agenda", icon: "calendar" },
-  { view: "clienti", label: "Clienti", icon: "clients" },
-  { view: "progetti", label: "Progetti", icon: "projects" },
-  { view: "report", label: "Report", icon: "reports" },
+const NAVIGATION: Array<{
+  view: View;
+  label: string;
+  icon: IconName;
+  href: string;
+}> = [
+  { view: "registro", label: "Agenda", icon: "calendar", href: "/agenda" },
+  { view: "clienti", label: "Clienti", icon: "clients", href: "/clienti" },
+  {
+    view: "progetti",
+    label: "Progetti",
+    icon: "projects",
+    href: "/progetti",
+  },
+  { view: "report", label: "Report", icon: "reports", href: "/report" },
 ];
 
-export default function TimmyTimer() {
+export default function TimmyTimer({ view }: { view: View }) {
   const [data, setData] = useState<AppData>(EMPTY_DATA);
-  const [view, setView] = useState<View>("registro");
   const [date, setDate] = useState(today());
   const [modal, setModal] = useState<ModalType | null>(null);
   const [slotPreset, setSlotPreset] = useState<SlotPreset | null>(null);
@@ -186,11 +196,7 @@ export default function TimmyTimer() {
 
   return (
     <main className="app-shell">
-      <Sidebar
-        currentView={view}
-        dayMinutes={totals.dayMinutes}
-        onNavigate={setView}
-      />
+      <Sidebar currentView={view} dayMinutes={totals.dayMinutes} />
       <section className="workspace">
         <MobileTimmyStatus dayMinutes={totals.dayMinutes} />
         {error && (
@@ -348,11 +354,9 @@ function AppView({
 function Sidebar({
   currentView,
   dayMinutes,
-  onNavigate,
 }: {
   currentView: View;
   dayMinutes: number;
-  onNavigate: (view: View) => void;
 }) {
   return (
     <aside className="sidebar">
@@ -367,14 +371,15 @@ function Sidebar({
       </div>
       <nav aria-label="Navigazione principale">
         {NAVIGATION.map((item) => (
-          <button
+          <Link
             className={currentView === item.view ? "active" : ""}
+            href={item.href}
             key={item.view}
-            onClick={() => onNavigate(item.view)}
+            aria-current={currentView === item.view ? "page" : undefined}
           >
             <Icon name={item.icon} />
             <span>{item.label}</span>
-          </button>
+          </Link>
         ))}
       </nav>
       <div className="sidebar-foot">

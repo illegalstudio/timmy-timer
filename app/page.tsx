@@ -1,4 +1,5 @@
-import TimmyTimer from "./tempo-app";
+import { redirect } from "next/navigation";
+
 export default function Home() {
-  return <TimmyTimer />;
+  redirect("/agenda");
 }

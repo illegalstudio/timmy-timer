@@ -162,7 +162,7 @@ svg {
   gap: 7px;
 }
 
-.sidebar nav button {
+.sidebar nav a {
   display: flex;
   align-items: center;
   gap: 13px;
@@ -170,22 +170,23 @@ svg {
   padding: 13px 14px;
   color: #c9c0cd;
   text-align: left;
+  text-decoration: none;
   background: transparent;
   border: 0;
   border-radius: 13px;
 }
 
-.sidebar nav button svg {
+.sidebar nav a svg {
   width: 20px;
   height: 20px;
 }
 
-.sidebar nav button:hover {
+.sidebar nav a:hover {
   color: white;
   background: rgba(255, 255, 255, 0.07);
 }
 
-.sidebar nav button.active {
+.sidebar nav a.active {
   color: var(--ink);
   font-weight: 750;
   background: var(--butter);
@@ -1598,7 +1599,7 @@ svg {
     gap: 5px;
   }
 
-  .sidebar nav button {
+  .sidebar nav a {
     flex-direction: column;
     justify-content: center;
     gap: 3px;
@@ -1607,12 +1608,12 @@ svg {
     text-align: center;
   }
 
-  .sidebar nav button svg {
+  .sidebar nav a svg {
     width: 19px;
     height: 19px;
   }
 
-  .sidebar nav button.active {
+  .sidebar nav a.active {
     box-shadow: none;
     transform: none;
   }
