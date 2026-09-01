@@ -1,0 +1,18 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "timmy-timer",
+  "main": "vinext/server/app-router-entry",
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "timmy-timer",
+      "database_id": "YOUR_D1_DATABASE_ID",
+      "migrations_dir": "drizzle",
+    },
+  ],
+  "observability": {
+    "enabled": true,
+  },
+}

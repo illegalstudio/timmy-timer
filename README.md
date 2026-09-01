@@ -20,8 +20,6 @@
   Timmy stays with you from first-time setup to the final report.
 </p>
 
-<p align="center"><a href="https://tempo-personale.nahime.chatgpt.site"><strong>Open Timmy Timer →</strong></a></p>
-
 ---
 
 <p align="center">
@@ -73,6 +71,32 @@ npm run dev
 
 The app is available at [http://localhost:3000](http://localhost:3000). Development uses a local Cloudflare D1 instance. The application initializes its schema automatically, and local data is stored under `.wrangler/`, which is excluded from Git.
 
+## Deploy to Cloudflare Workers
+
+Timmy Timer builds as a Cloudflare Worker with static assets and a D1 database. The repository intentionally contains no Cloudflare account ID, database ID, API token, or generated production configuration.
+
+The tracked [`wrangler.example.jsonc`](wrangler.example.jsonc) documents the required Worker configuration. During deployment, `scripts/create-cloudflare-config.mjs` generates the ignored `wrangler.jsonc` from these environment variables:
+
+| Variable                      | Required | Default       | Purpose                                  |
+| ----------------------------- | -------- | ------------- | ---------------------------------------- |
+| `CLOUDFLARE_D1_DATABASE_ID`   | Yes      | —             | ID of the production D1 database         |
+| `CLOUDFLARE_D1_DATABASE_NAME` | No       | `timmy-timer` | Human-readable D1 database name          |
+| `CLOUDFLARE_WORKER_NAME`      | No       | `timmy-timer` | Worker name, matching the Cloudflare app |
+| `NEXT_PUBLIC_APP_URL`         | No       | Localhost     | Public origin used for social metadata   |
+
+For Cloudflare Workers Builds, store these values in the build settings instead of committing them. Use:
+
+- Production branch: `main`
+- Build command: `npm run cloudflare:build`
+- Deploy command: `npm run cloudflare:deploy`
+- Root directory: `/`
+- Non-production branch builds: disabled until a separate preview data strategy is configured
+
+The deploy command applies pending migrations from `drizzle/` before publishing the Worker. See the official [Workers Builds documentation](https://developers.cloudflare.com/workers/ci-cd/builds/) for repository integration.
+
+> [!IMPORTANT]
+> Timmy Timer currently has a single shared data space. Keep a deployed Worker private or protect it with Cloudflare Access until application-level authentication and per-user data ownership are implemented. Making the GitHub repository public does not require making the deployed app public.
+
 ## Application routes
 
 | Route       | Purpose                                       |
@@ -113,15 +137,18 @@ Clients, projects, and entries are stored in **Cloudflare D1** through **Drizzle
 
 ## Available commands
 
-| Command                | Purpose                                     |
-| ---------------------- | ------------------------------------------- |
-| `npm run dev`          | Start the development environment           |
-| `npm run build`        | Create a production build                   |
-| `npm run start`        | Run the production build                    |
-| `npm run lint`         | Check the code with ESLint                  |
-| `npm run format`       | Format the project with Prettier            |
-| `npm run format:check` | Verify formatting without changing files    |
-| `npm run db:generate`  | Generate Drizzle migrations from the schema |
+| Command                     | Purpose                                      |
+| --------------------------- | -------------------------------------------- |
+| `npm run dev`               | Start the development environment            |
+| `npm run build`             | Create a production build                    |
+| `npm run start`             | Run the production build                     |
+| `npm run lint`              | Check the code with ESLint                   |
+| `npm run format`            | Format the project with Prettier             |
+| `npm run format:check`      | Verify formatting without changing files     |
+| `npm run db:generate`       | Generate Drizzle migrations from the schema  |
+| `npm run cloudflare:config` | Generate the ignored Wrangler configuration  |
+| `npm run cloudflare:build`  | Prepare configuration and build for Workers  |
+| `npm run cloudflare:deploy` | Apply D1 migrations and deploy to production |
 
 ## Project structure
 
@@ -145,7 +172,10 @@ timmy-timer/
 │   ├── timmy.png          # Mascot artwork
 │   ├── favicon.svg        # Brand mark
 │   └── og-timmy-timer-en.png # English social preview
-└── vite.config.ts         # Vinext, Sites, and Cloudflare runtime
+├── scripts/
+│   └── create-cloudflare-config.mjs # Generates account-specific config
+├── wrangler.example.jsonc # Public, account-neutral Worker template
+└── vite.config.ts         # Vinext and Cloudflare Workers runtime
 ```
 
 </details>

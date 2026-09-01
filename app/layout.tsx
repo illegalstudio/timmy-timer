@@ -15,7 +15,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://tempo-personale.chatgpt.site"),
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
+  ),
   title: "Timmy Timer — The right time, in the right place",
   description:
     "The time tracker with character: organize clients, projects, and hours with Timmy.",

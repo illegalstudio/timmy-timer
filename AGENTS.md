@@ -65,3 +65,15 @@ npm run build
 - Use the Git author and committer identity already configured by the repository owner.
 - Never set the author or committer identity to Codex, OpenAI, or an automated assistant.
 - Never add Codex/OpenAI attribution, `Co-authored-by`, `Generated-by`, or similar assistant-attribution text to commits, pull requests, or release notes.
+
+## Cloudflare deployment
+
+The repository is public-safe and must remain independent from any individual Cloudflare account.
+
+- Never commit `wrangler.jsonc`, `.dev.vars`, `.env*`, API tokens, account IDs, or real D1 database IDs.
+- Keep `wrangler.example.jsonc` account-neutral and use placeholders for values supplied by Cloudflare.
+- Generate the ignored production configuration with `npm run cloudflare:config`. The generator reads `CLOUDFLARE_D1_DATABASE_ID`, with optional `CLOUDFLARE_D1_DATABASE_NAME` and `CLOUDFLARE_WORKER_NAME` overrides.
+- Use `npm run cloudflare:build` as the Workers Builds build command.
+- Use `npm run cloudflare:deploy` as the production deploy command so pending migrations in `drizzle/` are applied before publishing.
+- Keep the D1 binding name `DB`; application code relies on `env.DB`.
+- Do not make the deployed application public without Cloudflare Access or application-level authentication and per-user data isolation.
