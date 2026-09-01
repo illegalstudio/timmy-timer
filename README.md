@@ -80,7 +80,7 @@ For Cloudflare Workers Builds, store these values in the build settings instead 
 
 - Production branch: `main`
 - Build command: `npm run cloudflare:build`
-- Deploy command: `npm run cloudflare:deploy`
+- Deploy command: `npm run cloudflare:publish`
 - Root directory: `/`
 - Non-production branch builds: disabled until a separate preview data strategy is configured
 
@@ -129,18 +129,19 @@ Clients, projects, and entries are stored in **Cloudflare D1** through **Drizzle
 
 ## Available commands
 
-| Command                     | Purpose                                      |
-| --------------------------- | -------------------------------------------- |
-| `npm run dev`               | Start the development environment            |
-| `npm run build`             | Create a production build                    |
-| `npm run start`             | Run the production build                     |
-| `npm run lint`              | Check the code with ESLint                   |
-| `npm run format`            | Format the project with Prettier             |
-| `npm run format:check`      | Verify formatting without changing files     |
-| `npm run db:generate`       | Generate Drizzle migrations from the schema  |
-| `npm run cloudflare:config` | Generate the ignored Wrangler configuration  |
-| `npm run cloudflare:build`  | Prepare configuration and build for Workers  |
-| `npm run cloudflare:deploy` | Apply D1 migrations and deploy to production |
+| Command                      | Purpose                                     |
+| ---------------------------- | ------------------------------------------- |
+| `npm run dev`                | Start the development environment           |
+| `npm run build`              | Create a production build                   |
+| `npm run start`              | Run the production build                    |
+| `npm run lint`               | Check the code with ESLint                  |
+| `npm run format`             | Format the project with Prettier            |
+| `npm run format:check`       | Verify formatting without changing files    |
+| `npm run db:generate`        | Generate Drizzle migrations from the schema |
+| `npm run cloudflare:config`  | Generate the ignored Wrangler configuration |
+| `npm run cloudflare:build`   | Prepare configuration and build for Workers |
+| `npm run cloudflare:publish` | Apply D1 migrations and publish a built app |
+| `npm run cloudflare:deploy`  | Build, migrate, and deploy through Wrangler |
 
 ## Project structure
 
