@@ -65,29 +65,112 @@ The app is available at [http://localhost:3000](http://localhost:3000). Developm
 
 ## Deploy to Cloudflare Workers
 
-Timmy Timer builds as a Cloudflare Worker with static assets and a D1 database. The repository intentionally contains no Cloudflare account ID, database ID, API token, or generated production configuration.
+Timmy Timer runs as a Cloudflare Worker with static assets and a D1 database. Deployment is intentionally account-neutral: the repository contains no Cloudflare account ID, D1 database ID, API token, generated production configuration, or deployment URL.
 
-The tracked [`wrangler.example.jsonc`](wrangler.example.jsonc) documents the required Worker configuration. During deployment, `scripts/create-cloudflare-config.mjs` generates the ignored `wrangler.jsonc` from these environment variables:
+The tracked [`wrangler.example.jsonc`](wrangler.example.jsonc) documents the configuration shape. Before a build, `scripts/create-cloudflare-config.mjs` creates an ignored `wrangler.jsonc` from environment variables. Vinext then writes the deployable Worker configuration to `dist/server/wrangler.json`.
 
-| Variable                      | Required | Default       | Purpose                                  |
-| ----------------------------- | -------- | ------------- | ---------------------------------------- |
-| `CLOUDFLARE_D1_DATABASE_ID`   | Yes      | —             | ID of the production D1 database         |
-| `CLOUDFLARE_D1_DATABASE_NAME` | No       | `timmy-timer` | Human-readable D1 database name          |
-| `CLOUDFLARE_WORKER_NAME`      | No       | `timmy-timer` | Worker name, matching the Cloudflare app |
-| `NEXT_PUBLIC_APP_URL`         | No       | Localhost     | Public origin used for social metadata   |
+### Deployment variables
 
-For Cloudflare Workers Builds, store these values in the build settings instead of committing them. Use:
+| Variable                      | Required                         | Default       | Purpose                                                   |
+| ----------------------------- | -------------------------------- | ------------- | --------------------------------------------------------- |
+| `CLOUDFLARE_ACCOUNT_ID`       | For accounts with multiple teams | —             | Selects the Cloudflare account used by Wrangler           |
+| `CLOUDFLARE_D1_DATABASE_ID`   | Yes                              | —             | Connects the Worker to its production D1 database         |
+| `CLOUDFLARE_D1_DATABASE_NAME` | No                               | `timmy-timer` | Human-readable D1 database name                           |
+| `CLOUDFLARE_WORKER_NAME`      | No                               | `timmy-timer` | Worker name; it must match the Workers Builds application |
+| `NEXT_PUBLIC_APP_URL`         | In production                    | Localhost     | Canonical public origin used by metadata and social cards |
 
-- Production branch: `main`
-- Build command: `npm run cloudflare:build`
-- Deploy command: `npm run cloudflare:publish`
-- Root directory: `/`
-- Non-production branch builds: disabled until a separate preview data strategy is configured
+Set these values in the current shell for a manual deployment, or in the Cloudflare Workers Builds settings for continuous deployment. Never add them to a tracked `.env` file or replace the placeholders in `wrangler.example.jsonc`.
 
-The deploy command applies pending migrations from `drizzle/` before publishing the Worker. See the official [Workers Builds documentation](https://developers.cloudflare.com/workers/ci-cd/builds/) for repository integration.
+### First deployment from the CLI
+
+1. Install dependencies and authenticate Wrangler:
+
+   ```bash
+   npm ci
+   npx wrangler login
+   ```
+
+   OAuth credentials are stored by Wrangler outside the repository. For a non-interactive CI system, use a scoped Cloudflare API token supplied by that system instead.
+
+2. Create the production D1 database. Choose the location closest to the expected users, or omit `--location` and let Cloudflare decide:
+
+   ```bash
+   npx wrangler d1 create <database-name> --location <location> --binding DB
+   ```
+
+   Keep the returned database ID. See the [D1 CLI reference](https://developers.cloudflare.com/d1/wrangler-commands/#d1-create) for supported locations and jurisdiction options.
+
+3. Export the deployment values without writing them to the repository:
+
+   ```bash
+   export CLOUDFLARE_ACCOUNT_ID="<account-id>"
+   export CLOUDFLARE_D1_DATABASE_ID="<database-id>"
+   export CLOUDFLARE_D1_DATABASE_NAME="<database-name>"
+   export CLOUDFLARE_WORKER_NAME="<worker-name>"
+   export NEXT_PUBLIC_APP_URL="https://<public-app-origin>"
+   ```
+
+   `CLOUDFLARE_ACCOUNT_ID` can be omitted when Wrangler has access to only one account. If the final Worker URL is not known yet, perform the first deployment without `NEXT_PUBLIC_APP_URL`, set it to the URL returned by Wrangler, and deploy once more so the generated metadata uses the canonical origin.
+
+4. Build, migrate, and deploy:
+
+   ```bash
+   npm run cloudflare:deploy
+   ```
+
+   This command performs the complete release flow:
+
+   1. generates the ignored `wrangler.jsonc`;
+   2. builds the Vinext application;
+   3. applies pending migrations from `drizzle/` to the remote D1 database;
+   4. publishes the compiled Worker using `dist/server/wrangler.json`.
+
+   The command is safe to run again. Applied D1 migrations are recorded by Cloudflare and are not repeated.
+
+5. Verify the deployed application:
+
+   ```bash
+   curl --fail --silent --show-error --output /dev/null \
+     "https://<public-app-origin>/calendar"
+   curl --fail --silent --show-error \
+     "https://<public-app-origin>/api/data"
+   ```
+
+   The calendar request should succeed and the API should return JSON containing `clients`, `projects`, and `entries`.
+
+### Automatic deployment with Workers Builds
+
+The first CLI deployment creates the Worker before continuous deployment is enabled. To deploy every push to the production branch:
+
+1. Open **Workers & Pages**, select the existing Worker, then open **Settings → Builds**.
+2. Connect the GitHub or GitLab repository. Grant the Cloudflare integration access only to the repositories it needs.
+3. Configure the production build:
+
+   | Setting                      | Value                        |
+   | ---------------------------- | ---------------------------- |
+   | Production branch            | `main`                       |
+   | Build command                | `npm run cloudflare:build`   |
+   | Deploy command               | `npm run cloudflare:publish` |
+   | Root directory               | `/`                          |
+   | Non-production branch builds | Disabled                     |
+
+4. Add the deployment variables from the table above under **Build variables and secrets**. Account and database identifiers belong in Cloudflare, never in Git. Use Cloudflare's generated build token or a deliberately scoped token; do not add an API token to the repository.
+5. Save the build settings. A new push to `main` will build the app, apply pending D1 migrations, and publish the resulting Worker.
+
+The Worker name configured in Cloudflare must match `CLOUDFLARE_WORKER_NAME`. Cloudflare rejects a connected build when those names differ. See [Workers Builds configuration](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/) for the current dashboard options.
+
+### Preview branches and database safety
+
+Non-production branch builds are disabled by default because a preview using the production D1 binding could modify production data. Enable previews only after creating a separate preview database and an environment-specific binding strategy.
+
+Database migrations run before every production publish. Schema changes must therefore include the generated SQL migration in `drizzle/`. Rolling back a Worker version does not reverse a D1 migration; write forward-compatible migrations and handle database rollbacks separately.
+
+### Protecting the deployed app
 
 > [!IMPORTANT]
 > Timmy Timer currently has a single shared data space. Keep a deployed Worker private or protect it with Cloudflare Access until application-level authentication and per-user data ownership are implemented. Making the GitHub repository public does not require making the deployed app public.
+
+Cloudflare Access can protect the Worker itself across its `workers.dev` URL, custom domains, and preview deployments. Configure an Allow policy before storing real client or time-entry data. See [Cloudflare Access for Workers](https://developers.cloudflare.com/workers/configuration/cloudflare-access/).
 
 ## Application routes
 
