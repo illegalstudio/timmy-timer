@@ -1,10 +1,6 @@
 <p align="center">
-  <img src="public/favicon.svg" alt="Timmy Timer mark" width="112">
+  <img src="public/og-timmy-timer-en.png" alt="Timmy Timer — The right time, in the right place" width="100%">
 </p>
-
-<h1 align="center">Timmy Timer</h1>
-
-<p align="center"><em>The right time, in the right place.</em></p>
 
 <p align="center">
   <a href="https://github.com/nahime0/timmy-timer/stargazers"><img src="https://img.shields.io/github/stars/nahime0/timmy-timer?style=flat-square&logo=github&logoColor=white&label=stars&color=F06B52" alt="GitHub stars"></a>
@@ -21,10 +17,6 @@
 </p>
 
 ---
-
-<p align="center">
-  <img src="public/og-timmy-timer-en.png" alt="Timmy Timer — The right time, in the right place" width="860">
-</p>
 
 ## Happy time tracking
 
