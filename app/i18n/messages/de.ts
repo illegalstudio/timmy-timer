@@ -257,6 +257,35 @@ export const de = {
   "settings.language.french": "Französisch",
   "settings.language.german": "Deutsch",
   "settings.selected": "Ausgewählt",
+  "pwa.title": "Timmy Timer installieren",
+  "pwa.description":
+    "Halte Timmy mit einem eigenen App-Fenster, schnellen Verknüpfungen und einem zuverlässigeren Offline-Erlebnis immer griffbereit.",
+  "pwa.checking": "Gerät wird geprüft…",
+  "pwa.checkingDescription":
+    "Timmy sucht nach der besten Installationsoption für diesen Browser.",
+  "pwa.installedTitle": "Timmy ist schon zu Hause.",
+  "pwa.installedDescription":
+    "Du verwendest die installierte App. Sie öffnet sich in einem eigenen Fenster und wird automatisch aktualisiert.",
+  "pwa.readyTitle": "Bereit für deinen Startbildschirm.",
+  "pwa.readyDescription":
+    "Installiere Timmy Timer für schnelleren Zugriff und einen aufgeräumten Arbeitsbereich.",
+  "pwa.iosTitle": "Füge Timmy zum Home-Bildschirm hinzu.",
+  "pwa.iosDescription":
+    "Tippe in Safari auf Teilen und wähle dann Zum Home-Bildschirm.",
+  "pwa.manualTitle": "Über den Browser installieren.",
+  "pwa.manualDescription":
+    "Öffne das Browsermenü und wähle Timmy Timer installieren oder Zum Home-Bildschirm hinzufügen.",
+  "pwa.install": "App installieren",
+  "pwa.installing": "Installation wird geöffnet…",
+  "pwa.installedBadge": "Installiert",
+  "pwa.offline": "Du bist offline. Bereits geöffnete Seiten bleiben verfügbar.",
+  "pwa.updateAvailable": "Eine neue Version von Timmy Timer ist bereit.",
+  "pwa.updateNow": "Jetzt aktualisieren",
+  "offline.eyebrow": "Timmy wartet auf dich",
+  "offline.title": "Du bist gerade offline.",
+  "offline.description":
+    "Stelle die Verbindung wieder her, um Kunden, Projekte und Zeiteinträge zu laden. Timmy Timer speichert D1-Daten nie im Offline-Cache.",
+  "offline.retry": "Erneut versuchen",
   "pageTitle.calendar": "Kalender",
   "pageTitle.clients": "Kunden",
   "pageTitle.projects": "Projekte",

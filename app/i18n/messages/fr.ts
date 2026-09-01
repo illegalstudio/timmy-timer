@@ -255,6 +255,36 @@ export const fr = {
   "settings.language.french": "Français",
   "settings.language.german": "Allemand",
   "settings.selected": "Sélectionnée",
+  "pwa.title": "Installer Timmy Timer",
+  "pwa.description":
+    "Gardez Timmy à portée de main grâce à une fenêtre dédiée, des raccourcis et une expérience hors ligne plus fiable.",
+  "pwa.checking": "Vérification de l’appareil…",
+  "pwa.checkingDescription":
+    "Timmy recherche la meilleure option d’installation pour ce navigateur.",
+  "pwa.installedTitle": "Timmy est déjà chez vous.",
+  "pwa.installedDescription":
+    "Vous utilisez l’application installée. Elle s’ouvre dans sa propre fenêtre et se met à jour automatiquement.",
+  "pwa.readyTitle": "Prêt pour votre écran d’accueil.",
+  "pwa.readyDescription":
+    "Installez Timmy Timer pour un accès plus rapide et un espace de travail plus épuré.",
+  "pwa.iosTitle": "Ajoutez Timmy à l’écran d’accueil.",
+  "pwa.iosDescription":
+    "Dans Safari, touchez Partager, puis choisissez Sur l’écran d’accueil.",
+  "pwa.manualTitle": "Installez depuis votre navigateur.",
+  "pwa.manualDescription":
+    "Ouvrez le menu du navigateur et choisissez Installer Timmy Timer ou Ajouter à l’écran d’accueil.",
+  "pwa.install": "Installer l’application",
+  "pwa.installing": "Ouverture de l’installation…",
+  "pwa.installedBadge": "Installée",
+  "pwa.offline":
+    "Vous êtes hors ligne. Les pages ouvertes restent disponibles.",
+  "pwa.updateAvailable": "Une nouvelle version de Timmy Timer est prête.",
+  "pwa.updateNow": "Mettre à jour",
+  "offline.eyebrow": "Timmy vous attend",
+  "offline.title": "Vous êtes momentanément hors ligne.",
+  "offline.description":
+    "Reconnectez-vous pour charger vos clients, projets et saisies. Timmy Timer ne conserve jamais vos données D1 dans le cache hors ligne.",
+  "offline.retry": "Réessayer",
   "pageTitle.calendar": "Agenda",
   "pageTitle.clients": "Clients",
   "pageTitle.projects": "Projets",

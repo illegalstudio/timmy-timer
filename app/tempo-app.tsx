@@ -96,9 +96,6 @@ export default function TimmyTimer({ view }: { view: View }) {
   const [timmyNotice, setTimmyNotice] = useState("");
 
   useEffect(() => {
-    if ("serviceWorker" in navigator) {
-      void navigator.serviceWorker.register("/sw.js");
-    }
     void loadData()
       .then(setData)
       .catch(() => setError("app.loadError"))

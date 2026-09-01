@@ -245,6 +245,34 @@ export const en = {
   "settings.language.french": "French",
   "settings.language.german": "German",
   "settings.selected": "Selected",
+  "pwa.title": "Install Timmy Timer",
+  "pwa.description":
+    "Keep Timmy one tap away with a focused app window, quick shortcuts, and a more reliable offline experience.",
+  "pwa.checking": "Checking this device…",
+  "pwa.checkingDescription":
+    "Timmy is checking the best installation option for this browser.",
+  "pwa.installedTitle": "Timmy is already at home.",
+  "pwa.installedDescription":
+    "You are using the installed app. It opens in its own window and updates automatically.",
+  "pwa.readyTitle": "Ready for your home screen.",
+  "pwa.readyDescription":
+    "Install Timmy Timer for faster access and a cleaner, app-like workspace.",
+  "pwa.iosTitle": "Add Timmy to your Home Screen.",
+  "pwa.iosDescription": "In Safari, tap Share, then choose Add to Home Screen.",
+  "pwa.manualTitle": "Install from your browser.",
+  "pwa.manualDescription":
+    "Open the browser menu and choose Install Timmy Timer or Add to Home Screen.",
+  "pwa.install": "Install app",
+  "pwa.installing": "Opening installer…",
+  "pwa.installedBadge": "Installed",
+  "pwa.offline": "You are offline. Open pages remain available.",
+  "pwa.updateAvailable": "A fresh version of Timmy Timer is ready.",
+  "pwa.updateNow": "Update now",
+  "offline.eyebrow": "Timmy is waiting",
+  "offline.title": "You are offline for a moment.",
+  "offline.description":
+    "Reconnect to load your clients, projects, and time entries. Timmy Timer never stores your D1 data in the offline cache.",
+  "offline.retry": "Try again",
   "pageTitle.calendar": "Calendar",
   "pageTitle.clients": "Clients",
   "pageTitle.projects": "Projects",

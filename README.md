@@ -35,7 +35,7 @@ The app is designed to keep repetitive workflows fast. Create time entries by dr
 | **Reports and billing**        | Filter by period, client, project, or billing status; update activities in bulk; then export to CSV or PDF.                    |
 | **Reliable historical rates**  | Every time entry keeps the rate that was applied when it was created, so later rate changes do not rewrite history.            |
 | **Multilingual interface**     | Use the complete app in English, Italian, French, or German, with localized dates, amounts, exports, and accessibility text.   |
-| **Responsive and installable** | Work comfortably on smaller screens and install Timmy Timer as a PWA through its web app manifest and service worker.          |
+| **Responsive and installable** | Install Timmy Timer with dedicated Timmy icons, adaptive masks, app shortcuts, update prompts, and an offline-safe shell.      |
 
 ## Languages
 
@@ -49,6 +49,12 @@ English is the default. Open **Settings** to switch to:
 The preference is applied immediately and saved on the current device. Interface copy, dates, currency formatting, CSV headers, PDF content, empty states, dialogs, and accessibility labels all follow the selected language.
 
 Translations are type-safe and live in [`app/i18n/messages`](app/i18n/messages). See [`AGENTS.md`](AGENTS.md) for the required workflow when adding or changing user-facing copy.
+
+## Install as an app
+
+Open **Settings** and use the Timmy Timer installation card. Supported browsers show a native **Install app** action. Safari on iPhone and iPad shows the steps for adding Timmy Timer to the Home Screen.
+
+The installed PWA opens in a focused standalone window and provides quick shortcuts to Calendar, Reports, and Settings. Its service worker caches the application shell, icons, and previously opened pages, while `/api` requests remain network-only so D1 records are never persisted in the offline cache.
 
 ## Run locally
 
