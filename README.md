@@ -71,13 +71,13 @@ The tracked [`wrangler.example.jsonc`](wrangler.example.jsonc) documents the con
 
 ### Deployment variables
 
-| Variable                      | Required                         | Default       | Purpose                                                   |
-| ----------------------------- | -------------------------------- | ------------- | --------------------------------------------------------- |
-| `CLOUDFLARE_ACCOUNT_ID`       | For accounts with multiple teams | —             | Selects the Cloudflare account used by Wrangler           |
-| `CLOUDFLARE_D1_DATABASE_ID`   | Yes                              | —             | Connects the Worker to its production D1 database         |
-| `CLOUDFLARE_D1_DATABASE_NAME` | No                               | `timmy-timer` | Human-readable D1 database name                           |
-| `CLOUDFLARE_WORKER_NAME`      | No                               | `timmy-timer` | Worker name; it must match the Workers Builds application |
-| `NEXT_PUBLIC_APP_URL`         | In production                    | Localhost     | Canonical public origin used by metadata and social cards |
+| Variable                      | Required                                 | Default       | Purpose                                                   |
+| ----------------------------- | ---------------------------------------- | ------------- | --------------------------------------------------------- |
+| `CLOUDFLARE_ACCOUNT_ID`       | Manual CLI only when selection is needed | —             | Selects the Cloudflare account used by Wrangler           |
+| `CLOUDFLARE_D1_DATABASE_ID`   | Yes                                      | —             | Connects the Worker to its production D1 database         |
+| `CLOUDFLARE_D1_DATABASE_NAME` | No                                       | `timmy-timer` | Human-readable D1 database name                           |
+| `CLOUDFLARE_WORKER_NAME`      | No                                       | `timmy-timer` | Worker name; it must match the Workers Builds application |
+| `NEXT_PUBLIC_APP_URL`         | Recommended in production                | Localhost     | Canonical public origin used by metadata and social cards |
 
 Set these values in the current shell for a manual deployment, or in the Cloudflare Workers Builds settings for continuous deployment. Never add them to a tracked `.env` file or replace the placeholders in `wrangler.example.jsonc`.
 
@@ -154,7 +154,13 @@ The first CLI deployment creates the Worker before continuous deployment is enab
    | Root directory               | `/`                          |
    | Non-production branch builds | Disabled                     |
 
-4. Add the deployment variables from the table above under **Build variables and secrets**. Account and database identifiers belong in Cloudflare, never in Git. Use Cloudflare's generated build token or a deliberately scoped token; do not add an API token to the repository.
+4. Add the following under **Build variables and secrets**:
+
+   - `CLOUDFLARE_D1_DATABASE_ID` is required.
+   - `NEXT_PUBLIC_APP_URL` is recommended so metadata uses the canonical production origin.
+
+   The other deployment variables are optional overrides and are unnecessary when the default Worker and database names are used. Do not add `CLOUDFLARE_ACCOUNT_ID` to native Workers Builds unless troubleshooting shows that the selected build token cannot resolve its account. Use Cloudflare's generated build token or a deliberately scoped token; do not add an API token to the repository.
+
 5. Save the build settings. A new push to `main` will build the app, apply pending D1 migrations, and publish the resulting Worker.
 
 The Worker name configured in Cloudflare must match `CLOUDFLARE_WORKER_NAME`. Cloudflare rejects a connected build when those names differ. See [Workers Builds configuration](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/) for the current dashboard options.
