@@ -3,8 +3,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/nahime0/timmy-timer/stargazers"><img src="https://img.shields.io/github/stars/nahime0/timmy-timer?style=flat-square&logo=github&logoColor=white&label=stars&color=F06B52" alt="GitHub stars"></a>
-  <a href="https://github.com/nahime0/timmy-timer/commits/main"><img src="https://img.shields.io/github/last-commit/nahime0/timmy-timer?style=flat-square&logo=git&logoColor=white&label=last%20commit&color=F06B52" alt="Last commit"></a>
+  <a href="https://github.com/illegalstudio/timmy-timer/stargazers"><img src="https://img.shields.io/github/stars/illegalstudio/timmy-timer?style=flat-square&logo=github&logoColor=white&label=stars&color=F06B52" alt="GitHub stars"></a>
+  <a href="https://github.com/illegalstudio/timmy-timer/commits/main"><img src="https://img.shields.io/github/last-commit/illegalstudio/timmy-timer?style=flat-square&logo=git&logoColor=white&label=last%20commit&color=F06B52" alt="Last commit"></a>
   <img src="https://img.shields.io/badge/Node-%E2%89%A522.13-F06B52?style=flat-square&logo=nodedotjs&logoColor=white" alt="Node.js 22.13 or newer">
   <img src="https://img.shields.io/badge/React-19-F06B52?style=flat-square&logo=react&logoColor=white" alt="React 19">
 </p>
@@ -55,7 +55,7 @@ Translations are type-safe and live in [`app/i18n/messages`](app/i18n/messages).
 You need [Node.js](https://nodejs.org/) **22.13 or newer** and npm.
 
 ```bash
-git clone git@github.com:nahime0/timmy-timer.git
+git clone git@github.com:illegalstudio/timmy-timer.git
 cd timmy-timer
 npm install
 npm run dev
