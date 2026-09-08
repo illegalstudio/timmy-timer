@@ -287,6 +287,46 @@
   border-color: #e2dad1;
 }
 
+.current-time-line {
+  position: absolute;
+  right: 0;
+  left: 0;
+  z-index: 3;
+  height: 0;
+  border-top: 2px solid var(--coral);
+  box-shadow:
+    0 -1px 0 rgba(255, 255, 255, 0.9),
+    0 1px 0 rgba(255, 255, 255, 0.9);
+  pointer-events: none;
+}
+
+.current-time-line::before {
+  position: absolute;
+  top: -5px;
+  left: -1px;
+  width: 8px;
+  height: 8px;
+  background: var(--coral);
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9);
+  content: "";
+}
+
+.current-time-mark {
+  position: absolute;
+  right: 5px;
+  z-index: 2;
+  padding: 2px 5px;
+  color: white;
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 9px;
+  font-weight: 700;
+  background: var(--coral);
+  border-radius: 6px;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
 .draft-slot,
 .calendar-slot {
   position: absolute;

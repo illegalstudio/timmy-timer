@@ -211,6 +211,7 @@ export const en = {
   "calendar.previousDay": "Previous day",
   "calendar.nextDay": "Next day",
   "calendar.viewAria": "Calendar view",
+  "calendar.currentTime": "Current time",
   "calendar.today": "Today",
   "calendar.nextWeek": "Next week",
   "calendar.newEntry": "New time entry",

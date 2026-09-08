@@ -221,6 +221,7 @@ export const de = {
   "calendar.previousDay": "Vorheriger Tag",
   "calendar.nextDay": "Nächster Tag",
   "calendar.viewAria": "Kalenderansicht",
+  "calendar.currentTime": "Aktuelle Uhrzeit",
   "calendar.today": "Heute",
   "calendar.nextWeek": "Nächste Woche",
   "calendar.newEntry": "Neuer Zeiteintrag",

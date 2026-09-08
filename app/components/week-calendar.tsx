@@ -30,6 +30,7 @@ type ContextMenuState = {
   y: number;
   confirmDelete: boolean;
 };
+type CurrentTime = { dayKey: string; offset: number; date: Date };
 
 type CalendarViewProps = {
   anchor: string;
@@ -51,6 +52,7 @@ export function CalendarView({
   const days = getVisibleDays(anchor, mode);
   const rangeStart = days[0];
   const rangeEnd = addDays(days[days.length - 1], 1);
+  const now = useCurrentTime();
   const [draft, setDraft] = useState<{
     day: number;
     start: number;
@@ -217,7 +219,7 @@ export function CalendarView({
         <div className="week-scroll">
           <CalendarHeader days={days} />
           <div className="week-body" style={{ height: calendarHeight }}>
-            <TimeAxis />
+            <TimeAxis now={now} />
             <div className="day-columns">
               {days.map((day, dayIndex) => {
                 const dayKey = day.toLocaleDateString("sv-SE");
@@ -236,6 +238,9 @@ export function CalendarView({
                     onPointerUp={finishCreate}
                   >
                     <GridLines />
+                    {now?.dayKey === dayKey && (
+                      <CurrentTimeLine offset={now.offset} />
+                    )}
                     {draft?.day === dayIndex && <DraftSlot draft={draft} />}
                     {dayEntries.map((entry) => (
                       <CalendarSlot
@@ -299,7 +304,9 @@ function CalendarHeader({ days }: { days: Date[] }) {
   );
 }
 
-function TimeAxis() {
+function TimeAxis({ now }: { now: CurrentTime | null }) {
+  const { localeTag, t } = useI18n();
+
   return (
     <div className="time-axis">
       {Array.from({ length: END_HOUR - START_HOUR + 1 }, (_, index) => (
@@ -307,7 +314,29 @@ function TimeAxis() {
           {String(START_HOUR + index).padStart(2, "0")}:00
         </span>
       ))}
+      {now && (
+        <b
+          className="current-time-mark"
+          style={{ top: now.offset * PIXELS_PER_MINUTE }}
+          aria-label={t("calendar.currentTime")}
+        >
+          {now.date.toLocaleTimeString(localeTag, {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+        </b>
+      )}
     </div>
+  );
+}
+
+function CurrentTimeLine({ offset }: { offset: number }) {
+  return (
+    <i
+      className="current-time-line"
+      style={{ top: offset * PIXELS_PER_MINUTE }}
+      aria-hidden="true"
+    />
   );
 }
 
@@ -600,6 +629,28 @@ function addDays(day: Date, amount: number) {
   value.setDate(value.getDate() + amount);
   value.setHours(0, 0, 0, 0);
   return value;
+}
+
+function useCurrentTime() {
+  const [now, setNow] = useState<CurrentTime | null>(null);
+
+  useEffect(() => {
+    function update() {
+      const date = new Date();
+      const offset = date.getHours() * 60 + date.getMinutes() - START_HOUR * 60;
+      setNow(
+        offset < 0 || offset > (END_HOUR - START_HOUR) * 60
+          ? null
+          : { dayKey: date.toLocaleDateString("sv-SE"), offset, date },
+      );
+    }
+
+    update();
+    const interval = window.setInterval(update, 30_000);
+    return () => window.clearInterval(interval);
+  }, []);
+
+  return now;
 }
 function dateAtMinutes(day: Date, minutes: number) {
   const value = new Date(day);

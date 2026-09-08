@@ -214,6 +214,7 @@ export const it = {
   "calendar.previousDay": "Giorno precedente",
   "calendar.nextDay": "Giorno successivo",
   "calendar.viewAria": "Vista agenda",
+  "calendar.currentTime": "Ora attuale",
   "calendar.today": "Oggi",
   "calendar.nextWeek": "Settimana successiva",
   "calendar.newEntry": "Nuova attività",

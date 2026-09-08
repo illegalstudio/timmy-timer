@@ -220,6 +220,7 @@ export const fr = {
   "calendar.previousDay": "Jour précédent",
   "calendar.nextDay": "Jour suivant",
   "calendar.viewAria": "Vue de l’agenda",
+  "calendar.currentTime": "Heure actuelle",
   "calendar.today": "Aujourd’hui",
   "calendar.nextWeek": "Semaine suivante",
   "calendar.newEntry": "Nouvelle saisie",
