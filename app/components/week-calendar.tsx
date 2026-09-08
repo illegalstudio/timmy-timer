@@ -13,7 +13,14 @@ import { useI18n } from "../i18n/i18n-provider";
 import { Icon } from "./icon";
 import { SmartSelect } from "./smart-select";
 import { Timmy } from "./timmy";
-import { formatDuration, formatMoney, today } from "../lib/time";
+import {
+  entryAmount,
+  entryMinutes,
+  formatDuration,
+  formatMoney,
+  today,
+  toLocalInput,
+} from "../lib/time";
 import type {
   CalendarMode,
   Client,
@@ -685,9 +692,6 @@ export function CalendarPage({
   projects,
   entries,
   date,
-  dayMinutes,
-  dayAmount,
-  uninvoiced,
   setupStage,
   onDateChange,
   onCreate,
@@ -698,9 +702,6 @@ export function CalendarPage({
   projects: Project[];
   entries: Entry[];
   date: string;
-  dayMinutes: number;
-  dayAmount: number;
-  uninvoiced: number;
   setupStage: "client" | "project" | null;
   onDateChange: (date: string) => void;
   onCreate: (preset?: SlotPreset) => void;
@@ -732,6 +733,33 @@ export function CalendarPage({
       ),
     [entries, clientId, projectId],
   );
+
+  // The strip reports on what the grid is actually showing, so it follows
+  // the client and project filters.
+  const summary = useMemo(() => {
+    const dayEntries = filteredEntries.filter(
+      (entry) => toLocalInput(entry.started_at).slice(0, 10) === date,
+    );
+    return {
+      dayMinutes: dayEntries.reduce(
+        (total, entry) => total + entryMinutes(entry),
+        0,
+      ),
+      dayAmount: dayEntries.reduce(
+        (total, entry) => total + entryAmount(entry),
+        0,
+      ),
+      uninvoiced: filteredEntries
+        .filter((entry) => entry.billable && !entry.invoiced)
+        .reduce((total, entry) => total + entryAmount(entry), 0),
+    };
+  }, [filteredEntries, date]);
+
+  const uninvoicedHref = [
+    "/reports?billing=to-invoice&period=all-time",
+    clientId === "all" ? "" : `&client=${clientId}`,
+    projectId === "all" ? "" : `&project=${projectId}`,
+  ].join("");
 
   function changeClient(value: string) {
     setClientId(value);
@@ -803,7 +831,7 @@ export function CalendarPage({
               </span>
               <span>
                 <small>{t("calendar.todayTime")}</small>
-                <b>{formatDuration(dayMinutes)}</b>
+                <b>{formatDuration(summary.dayMinutes)}</b>
               </span>
             </div>
             <div className="summary-item">
@@ -812,12 +840,12 @@ export function CalendarPage({
               </span>
               <span>
                 <small>{t("calendar.todayValue")}</small>
-                <b>{formatMoney(dayAmount, localeTag)}</b>
+                <b>{formatMoney(summary.dayAmount, localeTag)}</b>
               </span>
             </div>
             <Link
               className="summary-item summary-item-link"
-              href="/reports?billing=to-invoice&period=all-time"
+              href={uninvoicedHref}
               aria-label={t("calendar.openUninvoiced")}
             >
               <span className="summary-icon coral">
@@ -825,7 +853,7 @@ export function CalendarPage({
               </span>
               <span>
                 <small>{t("calendar.uninvoiced")}</small>
-                <b>{formatMoney(uninvoiced, localeTag)}</b>
+                <b>{formatMoney(summary.uninvoiced, localeTag)}</b>
               </span>
               <Icon className="summary-link-arrow" name="chevron-right" />
             </Link>

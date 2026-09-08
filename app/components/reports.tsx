@@ -72,8 +72,8 @@ export function Reports({
   const [preset, setPreset] = useState<Preset>(initialFilters.preset);
   const [from, setFrom] = useState(initialFilters.from);
   const [to, setTo] = useState(initialFilters.to);
-  const [clientId, setClientId] = useState("all");
-  const [projectId, setProjectId] = useState("all");
+  const [clientId, setClientId] = useState(initialFilters.clientId);
+  const [projectId, setProjectId] = useState(initialFilters.projectId);
   const [billingStatus, setBillingStatus] = useState<BillingStatus>(
     initialFilters.billingStatus,
   );
@@ -743,6 +743,8 @@ function getInitialFilters(entries: Entry[]): {
   from: string;
   to: string;
   billingStatus: BillingStatus;
+  clientId: string;
+  projectId: string;
 } {
   const defaultRange = getPresetRange("this-month");
   if (typeof window === "undefined") {
@@ -750,6 +752,8 @@ function getInitialFilters(entries: Entry[]): {
       preset: "this-month",
       ...defaultRange,
       billingStatus: "all",
+      clientId: "all",
+      projectId: "all",
     };
   }
   const params = new URLSearchParams(window.location.search);
@@ -757,18 +761,36 @@ function getInitialFilters(entries: Entry[]): {
   const billingStatus = isBillingStatus(requestedBilling)
     ? requestedBilling
     : "all";
+  const clientId = requestedId(params.get("client"), entries, "client_id");
+  const projectId = requestedId(params.get("project"), entries, "project_id");
   if (params.get("period") === "all-time") {
     return {
       preset: "all-time",
       ...getAllTimeRange(entries),
       billingStatus,
+      clientId,
+      projectId,
     };
   }
   return {
     preset: "this-month",
     ...defaultRange,
     billingStatus,
+    clientId,
+    projectId,
   };
+}
+
+// Only accept an id the report can actually show, so a stale link cannot
+// leave the filters pointing at something that is not in the list.
+function requestedId(
+  value: string | null,
+  entries: Entry[],
+  field: "client_id" | "project_id",
+) {
+  return value && entries.some((entry) => String(entry[field]) === value)
+    ? value
+    : "all";
 }
 
 function getAllTimeRange(entries: Entry[]) {

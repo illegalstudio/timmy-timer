@@ -15,7 +15,6 @@ import { Timmy } from "./components/timmy";
 import { CalendarPage } from "./components/week-calendar";
 import { useI18n } from "./i18n/i18n-provider";
 import {
-  entryAmount,
   entryMinutes,
   formatDuration,
   formatMoney,
@@ -127,7 +126,10 @@ export default function TimmyTimer({ view }: { view: View }) {
     return true;
   };
 
-  const totals = useMemo(() => calculateTotals(data, date), [data, date]);
+  const dayMinutes = useMemo(
+    () => calculateDayMinutes(data, date),
+    [data, date],
+  );
 
   function openNewEntry(preset?: SlotPreset) {
     setEditingEntry(null);
@@ -228,9 +230,9 @@ export default function TimmyTimer({ view }: { view: View }) {
 
   return (
     <main className="app-shell">
-      <Sidebar currentView={view} dayMinutes={totals.dayMinutes} />
+      <Sidebar currentView={view} dayMinutes={dayMinutes} />
       <section className="workspace">
-        <MobileTimmyStatus dayMinutes={totals.dayMinutes} />
+        <MobileTimmyStatus dayMinutes={dayMinutes} />
         {error && (
           <div className="error" role="alert">
             <strong>{t("app.errorPrefix")}</strong> {t(error)}
@@ -248,7 +250,6 @@ export default function TimmyTimer({ view }: { view: View }) {
             view={view}
             data={data}
             date={date}
-            totals={totals}
             setDate={setDate}
             openNewEntry={openNewEntry}
             openEntry={openEntry}
@@ -307,13 +308,10 @@ export default function TimmyTimer({ view }: { view: View }) {
   );
 }
 
-type Totals = ReturnType<typeof calculateTotals>;
-
 function AppView({
   view,
   data,
   date,
-  totals,
   setDate,
   openNewEntry,
   openEntry,
@@ -327,7 +325,6 @@ function AppView({
   view: View;
   data: AppData;
   date: string;
-  totals: Totals;
   setDate: (value: string) => void;
   openNewEntry: (preset?: SlotPreset) => void;
   openEntry: (entry: Entry) => void;
@@ -345,9 +342,6 @@ function AppView({
         projects={data.projects}
         entries={data.entries}
         date={date}
-        dayMinutes={totals.dayMinutes}
-        dayAmount={totals.dayAmount}
-        uninvoiced={totals.uninvoiced}
         setupStage={
           !data.clients.length
             ? "client"
@@ -629,23 +623,11 @@ function ProjectsView({
   );
 }
 
-function calculateTotals(data: AppData, date: string) {
-  const dayEntries = data.entries.filter(
-    (entry) => toLocalInput(entry.started_at).slice(0, 10) === date,
-  );
-  return {
-    dayMinutes: dayEntries.reduce(
-      (total, entry) => total + entryMinutes(entry),
-      0,
-    ),
-    dayAmount: dayEntries.reduce(
-      (total, entry) => total + entryAmount(entry),
-      0,
-    ),
-    uninvoiced: data.entries
-      .filter((entry) => entry.billable && !entry.invoiced)
-      .reduce((total, entry) => total + entryAmount(entry), 0),
-  };
+// Timmy's daily status covers the whole day, so it ignores calendar filters.
+function calculateDayMinutes(data: AppData, date: string) {
+  return data.entries
+    .filter((entry) => toLocalInput(entry.started_at).slice(0, 10) === date)
+    .reduce((total, entry) => total + entryMinutes(entry), 0);
 }
 
 async function loadData(): Promise<AppData> {
