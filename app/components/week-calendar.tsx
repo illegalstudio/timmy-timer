@@ -11,7 +11,7 @@ import { useI18n } from "../i18n/i18n-provider";
 import { Icon } from "./icon";
 import { Timmy } from "./timmy";
 import { formatDuration, formatMoney, today } from "../lib/time";
-import type { Entry, Mutate, SlotPreset } from "../lib/types";
+import type { CalendarMode, Entry, Mutate, SlotPreset } from "../lib/types";
 
 const START_HOUR = 6;
 const END_HOUR = 22;
@@ -31,8 +31,9 @@ type ContextMenuState = {
   confirmDelete: boolean;
 };
 
-type WeekCalendarProps = {
+type CalendarViewProps = {
   anchor: string;
+  mode: CalendarMode;
   entries: Entry[];
   onCreate: (preset: SlotPreset) => void;
   onEdit: (entry: Entry) => void;
@@ -41,13 +42,15 @@ type WeekCalendarProps = {
 
 export function CalendarView({
   anchor,
+  mode,
   entries,
   onCreate,
   onEdit,
   mutate,
-}: WeekCalendarProps) {
-  const start = getWeekStart(anchor);
-  const days = getWeekDays(start);
+}: CalendarViewProps) {
+  const days = getVisibleDays(anchor, mode);
+  const rangeStart = days[0];
+  const rangeEnd = addDays(days[days.length - 1], 1);
   const [draft, setDraft] = useState<{
     day: number;
     start: number;
@@ -88,11 +91,8 @@ export function CalendarView({
   }, [contextMenu]);
 
   const visibleEntries = entries.filter((entry) => {
-    const entryStart = preview[entry.id]?.start ?? new Date(entry.started_at);
-    return (
-      entryStart >= start &&
-      entryStart < new Date(start.getTime() + 7 * 86_400_000)
-    );
+    const entryStart = effectiveStart(entry, preview);
+    return entryStart >= rangeStart && entryStart < rangeEnd;
   });
   const layouts = calculateOverlapLayouts(visibleEntries, preview);
 
@@ -213,7 +213,7 @@ export function CalendarView({
 
   return (
     <>
-      <div className="week-panel">
+      <div className={`week-panel ${mode === "day" ? "is-day" : ""}`}>
         <div className="week-scroll">
           <CalendarHeader days={days} />
           <div className="week-body" style={{ height: calendarHeight }}>
@@ -410,6 +410,11 @@ function CalendarSlot({
           minute: "2-digit",
         })}
       </span>
+      <small className="slot-details">
+        {entry.description
+          ? `${entry.client_name} · ${entry.description}`
+          : entry.client_name}
+      </small>
       <i
         className="resize-handle"
         onPointerDown={(event) => onPointerDown(entry, "resize", event)}
@@ -581,6 +586,21 @@ function getWeekDays(start: Date) {
     return day;
   });
 }
+function getVisibleDays(anchor: string, mode: CalendarMode) {
+  if (mode === "day") return [startOfDay(anchor)];
+  return getWeekDays(getWeekStart(anchor));
+}
+function startOfDay(value: string) {
+  const date = new Date(`${value}T12:00:00`);
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
+function addDays(day: Date, amount: number) {
+  const value = new Date(day);
+  value.setDate(value.getDate() + amount);
+  value.setHours(0, 0, 0, 0);
+  return value;
+}
 function dateAtMinutes(day: Date, minutes: number) {
   const value = new Date(day);
   value.setMinutes(minutes);
@@ -622,25 +642,36 @@ export function CalendarPage({
   mutate: Mutate;
 }) {
   const { localeTag, t } = useI18n();
+  const [mode, setMode] = useState<CalendarMode>("week");
+  const isDay = mode === "day";
+  const step = isDay ? 1 : 7;
 
   return (
     <>
       <header className="topbar calendar-top">
         <div>
-          <p className="eyebrow">{t("calendar.eyebrow")}</p>
-          <h1>{t("calendar.title")}</h1>
-          <p className="page-subtitle">{formatWeekRange(date, localeTag)}</p>
+          <p className="eyebrow">
+            {t(isDay ? "calendar.eyebrowDay" : "calendar.eyebrowWeek")}
+          </p>
+          <h1>{t(isDay ? "calendar.titleDay" : "calendar.titleWeek")}</h1>
+          <p className="page-subtitle">
+            {isDay
+              ? formatDayLabel(date, localeTag)
+              : formatWeekRange(date, localeTag)}
+          </p>
         </div>
         <div className="calendar-actions">
           <div className="date-nav">
             <button
-              onClick={() => onDateChange(changeByDays(date, -7))}
-              aria-label={t("calendar.previousWeek")}
+              onClick={() => onDateChange(changeByDays(date, -step))}
+              aria-label={t(
+                isDay ? "calendar.previousDay" : "calendar.previousWeek",
+              )}
             >
               <Icon name="chevron-left" />
             </button>
             <input
-              aria-label={t("calendar.week")}
+              aria-label={t(isDay ? "calendar.day" : "calendar.week")}
               type="date"
               value={date}
               onChange={(event) => onDateChange(event.target.value)}
@@ -649,8 +680,8 @@ export function CalendarPage({
               {t("calendar.today")}
             </button>
             <button
-              onClick={() => onDateChange(changeByDays(date, 7))}
-              aria-label={t("calendar.nextWeek")}
+              onClick={() => onDateChange(changeByDays(date, step))}
+              aria-label={t(isDay ? "calendar.nextDay" : "calendar.nextWeek")}
             >
               <Icon name="chevron-right" />
             </button>
@@ -700,8 +731,31 @@ export function CalendarPage({
             </Link>
             <small className="calendar-hint">{t("calendar.hint")}</small>
           </div>
+          <div className="calendar-toolbar">
+            <div
+              className="calendar-view-switch"
+              role="group"
+              aria-label={t("calendar.viewAria")}
+            >
+              <button
+                type="button"
+                aria-pressed={!isDay}
+                onClick={() => setMode("week")}
+              >
+                {t("calendar.week")}
+              </button>
+              <button
+                type="button"
+                aria-pressed={isDay}
+                onClick={() => setMode("day")}
+              >
+                {t("calendar.day")}
+              </button>
+            </div>
+          </div>
           <CalendarView
             anchor={date}
+            mode={mode}
             entries={entries}
             onCreate={onCreate}
             onEdit={onEdit}
@@ -766,6 +820,15 @@ function changeByDays(value: string, days: number) {
   const date = new Date(`${value}T12:00:00`);
   date.setDate(date.getDate() + days);
   return date.toLocaleDateString("sv-SE");
+}
+
+function formatDayLabel(value: string, locale: string) {
+  return new Date(`${value}T12:00:00`).toLocaleDateString(locale, {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
 }
 
 function formatWeekRange(value: string, locale: string) {

@@ -36,6 +36,7 @@ export type AppData = {
 };
 
 export type View = "registro" | "clienti" | "progetti" | "report" | "settings";
+export type CalendarMode = "week" | "day";
 export type ModalType = "entry" | "client" | "project";
 export type SlotPreset = { start: Date; end: Date };
 export type Mutate = (
