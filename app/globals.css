@@ -978,6 +978,54 @@ svg {
   background: #eee9e3;
 }
 
+.report-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 22px;
+  color: var(--ink-soft);
+  font-size: 12px;
+  background: #faf5ee;
+}
+
+.report-pagination > div {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.report-pagination b {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.report-pagination button {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.report-pagination button:hover:not(:disabled) {
+  background: var(--cream);
+  border-color: var(--line-strong);
+}
+
+.report-pagination button:disabled {
+  color: var(--line-strong);
+  cursor: not-allowed;
+}
+
+.report-pagination svg {
+  width: 15px;
+  height: 15px;
+}
+
 .report-head {
   padding-block: 12px;
   color: var(--ink-soft);
@@ -2364,6 +2412,10 @@ button:disabled {
   .report-row {
     grid-template-columns: 26px 72px minmax(0, 1fr) auto;
     gap: 10px;
+    padding-inline: 15px;
+  }
+
+  .report-pagination {
     padding-inline: 15px;
   }
 

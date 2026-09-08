@@ -32,6 +32,8 @@ type Preset =
 
 type BillingStatus = "all" | "to-invoice" | "invoiced" | "non-billable";
 
+const PAGE_SIZE = 10;
+
 const PRESETS: Array<{ value: Preset; labelKey: MessageKey }> = [
   { value: "today", labelKey: "reports.preset.today" },
   { value: "yesterday", labelKey: "reports.preset.yesterday" },
@@ -75,6 +77,7 @@ export function Reports({
   const [billingStatus, setBillingStatus] = useState<BillingStatus>(
     initialFilters.billingStatus,
   );
+  const [page, setPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [updating, setUpdating] = useState(false);
   const [billingNotice, setBillingNotice] = useState<{
@@ -141,6 +144,13 @@ export function Reports({
     [scopedEntries, billingStatus],
   );
 
+  // Clamped rather than stored, so the view stays valid when the list shrinks
+  // under it (a filter change, or entries leaving the current billing status).
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const pageStart = (currentPage - 1) * PAGE_SIZE;
+  const pageEntries = filtered.slice(pageStart, pageStart + PAGE_SIZE);
+
   const selectableEntries = filtered.filter((entry) => Boolean(entry.billable));
   const selectedEntries = selectableEntries.filter((entry) =>
     selectedIds.has(entry.id),
@@ -173,13 +183,14 @@ export function Reports({
     .filter((entry) => entry.billable && entry.invoiced)
     .reduce((total, entry) => total + entryAmount(entry), 0);
 
-  function clearSelection() {
+  function resetFilterView() {
     setSelectedIds(new Set());
     setBillingNotice(null);
+    setPage(1);
   }
 
   function selectPreset(value: Preset) {
-    clearSelection();
+    resetFilterView();
     setPreset(value);
     if (value === "custom") return;
     if (value === "all-time") {
@@ -194,19 +205,19 @@ export function Reports({
   }
 
   function changeFrom(value: string) {
-    clearSelection();
+    resetFilterView();
     setPreset("custom");
     setFrom(value);
   }
 
   function changeTo(value: string) {
-    clearSelection();
+    resetFilterView();
     setPreset("custom");
     setTo(value);
   }
 
   function changeClient(value: string) {
-    clearSelection();
+    resetFilterView();
     setClientId(value);
     if (projectId === "all") return;
     const selectedProject = entries.find(
@@ -218,13 +229,13 @@ export function Reports({
   }
 
   function changeProject(value: string) {
-    clearSelection();
+    resetFilterView();
     setProjectId(value);
   }
 
   function changeBillingStatus(value: string) {
     if (!isBillingStatus(value)) return;
-    clearSelection();
+    resetFilterView();
     setBillingStatus(value);
   }
 
@@ -556,7 +567,7 @@ export function Reports({
             <span>{t("reports.table.amount")}</span>
           </div>
         )}
-        {filtered.map((entry) => {
+        {pageEntries.map((entry) => {
           const date = formatDate(
             toLocalInput(entry.started_at).slice(0, 10),
             localeTag,
@@ -604,6 +615,44 @@ export function Reports({
             </div>
           );
         })}
+        {filtered.length > PAGE_SIZE && (
+          <nav
+            className="report-pagination"
+            aria-label={t("reports.paginationAria")}
+          >
+            <span>
+              {t("reports.showingRange", {
+                from: pageStart + 1,
+                to: pageStart + pageEntries.length,
+                total: filtered.length,
+              })}
+            </span>
+            <div>
+              <button
+                type="button"
+                onClick={() => setPage(currentPage - 1)}
+                disabled={currentPage === 1}
+                aria-label={t("reports.previousPage")}
+              >
+                <Icon name="chevron-left" />
+              </button>
+              <b>
+                {t("reports.pageOf", {
+                  page: currentPage,
+                  pages: pageCount,
+                })}
+              </b>
+              <button
+                type="button"
+                onClick={() => setPage(currentPage + 1)}
+                disabled={currentPage === pageCount}
+                aria-label={t("reports.nextPage")}
+              >
+                <Icon name="chevron-right" />
+              </button>
+            </div>
+          </nav>
+        )}
         {!filtered.length && (
           <EmptyState
             title={t("reports.emptyTitle")}
