@@ -1468,6 +1468,29 @@ svg {
   border-color: var(--butter);
 }
 
+/* Filter bars keep every control the same size, so selecting a coloured
+   project cannot resize its select and reflow the layout around it. */
+.report-filters .smart-select-trigger,
+.calendar-filter .smart-select-trigger {
+  height: 40px;
+  min-height: 40px;
+  padding-block: 6px;
+}
+
+.report-filters .smart-select-trigger .smart-select-marker,
+.calendar-filter .smart-select-trigger .smart-select-marker {
+  flex-basis: 22px;
+  width: 22px;
+  height: 22px;
+  font-size: 10px;
+  border-radius: 7px;
+}
+
+.report-filters .smart-select-trigger .smart-select-value small,
+.calendar-filter .smart-select-trigger .smart-select-value small {
+  display: none;
+}
+
 .delete-destination .smart-select-popover {
   top: auto;
   bottom: calc(100% + 7px);
