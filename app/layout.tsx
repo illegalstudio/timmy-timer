@@ -1,19 +1,8 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import { PwaProvider } from "./components/pwa-provider";
 import { I18nProvider } from "./i18n/i18n-provider";
 import "./globals.css";
 import "./calendar.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   applicationName: "Timmy Timer",
@@ -72,9 +61,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className="antialiased">
         <I18nProvider>
           <PwaProvider>{children}</PwaProvider>
         </I18nProvider>
