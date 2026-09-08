@@ -144,6 +144,52 @@
   background: var(--ink);
 }
 
+.calendar-toolbar-filters {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.calendar-filter {
+  gap: 5px;
+  width: 194px;
+}
+
+.calendar-filter > label {
+  color: var(--ink-soft);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.calendar-filter-clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 8px 13px;
+  color: var(--ink-soft);
+  font-size: 12px;
+  font-weight: 700;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+}
+
+.calendar-filter-clear:hover {
+  color: var(--coral-dark);
+  background: var(--coral-soft);
+  border-color: var(--coral);
+}
+
+.calendar-filter-clear svg {
+  width: 13px;
+  height: 13px;
+}
+
 .week-panel {
   overflow: hidden;
   background: var(--surface);
@@ -789,13 +835,25 @@
 }
 
 @media (max-width: 640px) {
-  .calendar-view-switch {
+  .calendar-view-switch,
+  .calendar-toolbar-filters {
     width: 100%;
+    margin-left: 0;
   }
 
   .calendar-view-switch button {
     flex: 1;
     padding-inline: 10px;
+  }
+
+  .calendar-filter {
+    flex: 1 1 145px;
+    width: auto;
+  }
+
+  .calendar-filter-clear {
+    width: 100%;
+    justify-content: center;
   }
 
   .summary-strip {

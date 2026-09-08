@@ -341,6 +341,8 @@ function AppView({
   if (view === "registro") {
     return (
       <CalendarPage
+        clients={data.clients}
+        projects={data.projects}
         entries={data.entries}
         date={date}
         dayMinutes={totals.dayMinutes}

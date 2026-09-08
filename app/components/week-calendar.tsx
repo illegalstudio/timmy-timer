@@ -5,13 +5,22 @@ import {
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 import { useI18n } from "../i18n/i18n-provider";
 import { Icon } from "./icon";
+import { SmartSelect } from "./smart-select";
 import { Timmy } from "./timmy";
 import { formatDuration, formatMoney, today } from "../lib/time";
-import type { CalendarMode, Entry, Mutate, SlotPreset } from "../lib/types";
+import type {
+  CalendarMode,
+  Client,
+  Entry,
+  Mutate,
+  Project,
+  SlotPreset,
+} from "../lib/types";
 
 const START_HOUR = 6;
 const END_HOUR = 22;
@@ -670,6 +679,8 @@ function readableTextColor(color: string) {
 }
 
 export function CalendarPage({
+  clients,
+  projects,
   entries,
   date,
   dayMinutes,
@@ -681,6 +692,8 @@ export function CalendarPage({
   onEdit,
   mutate,
 }: {
+  clients: Client[];
+  projects: Project[];
   entries: Entry[];
   date: string;
   dayMinutes: number;
@@ -694,8 +707,42 @@ export function CalendarPage({
 }) {
   const { localeTag, t } = useI18n();
   const [mode, setMode] = useState<CalendarMode>("week");
+  const [clientId, setClientId] = useState("all");
+  const [projectId, setProjectId] = useState("all");
   const isDay = mode === "day";
   const step = isDay ? 1 : 7;
+
+  const clientProjects = useMemo(
+    () =>
+      projects.filter(
+        (project) =>
+          clientId === "all" || project.client_id === Number(clientId),
+      ),
+    [projects, clientId],
+  );
+
+  const filteredEntries = useMemo(
+    () =>
+      entries.filter(
+        (entry) =>
+          (clientId === "all" || entry.client_id === Number(clientId)) &&
+          (projectId === "all" || entry.project_id === Number(projectId)),
+      ),
+    [entries, clientId, projectId],
+  );
+
+  function changeClient(value: string) {
+    setClientId(value);
+    const project = projects.find((item) => item.id === Number(projectId));
+    if (value !== "all" && project && project.client_id !== Number(value)) {
+      setProjectId("all");
+    }
+  }
+
+  function clearFilters() {
+    setClientId("all");
+    setProjectId("all");
+  }
 
   return (
     <>
@@ -803,11 +850,59 @@ export function CalendarPage({
                 {t("calendar.day")}
               </button>
             </div>
+            <div
+              className="calendar-toolbar-filters"
+              role="group"
+              aria-label={t("calendar.filtersAria")}
+            >
+              <SmartSelect
+                className="calendar-filter"
+                label={t("calendar.filterClient")}
+                value={clientId}
+                onValueChange={changeClient}
+                searchPlaceholder={t("calendar.searchClient")}
+                options={[
+                  { value: "all", label: t("calendar.allClients") },
+                  ...clients.map((client) => ({
+                    value: String(client.id),
+                    label: client.name,
+                  })),
+                ]}
+              />
+              <SmartSelect
+                className="calendar-filter"
+                label={t("calendar.filterProject")}
+                value={projectId}
+                onValueChange={setProjectId}
+                searchPlaceholder={t("calendar.searchProject")}
+                options={[
+                  { value: "all", label: t("calendar.allProjects") },
+                  ...clientProjects.map((project) => ({
+                    value: String(project.id),
+                    label: project.name,
+                    color: project.color,
+                    hint: clients.find(
+                      (client) => client.id === project.client_id,
+                    )?.name,
+                  })),
+                ]}
+              />
+              {(clientId !== "all" || projectId !== "all") && (
+                <button
+                  className="calendar-filter-clear"
+                  type="button"
+                  onClick={clearFilters}
+                >
+                  <Icon name="close" />
+                  {t("calendar.clearFilters")}
+                </button>
+              )}
+            </div>
           </div>
           <CalendarView
             anchor={date}
             mode={mode}
-            entries={entries}
+            entries={filteredEntries}
             onCreate={onCreate}
             onEdit={onEdit}
             mutate={mutate}
