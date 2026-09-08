@@ -277,6 +277,18 @@
   padding-left: 18px;
 }
 
+.week-panel.is-day {
+  --day-slot-gutter: 64px;
+}
+
+.week-panel.is-day .calendar-slot {
+  --slot-gutter: var(--day-slot-gutter);
+}
+
+.week-panel.is-day .draft-slot {
+  left: calc(var(--day-slot-gutter) + 4px);
+}
+
 .week-body {
   position: relative;
   display: grid;
@@ -386,14 +398,26 @@
 }
 
 .draft-slot {
+  /* Above entries: a draft can now be dragged out over an existing one. */
+  z-index: 3;
   color: var(--ink);
   font-size: 10px;
   font-weight: 750;
-  background: rgba(244, 201, 93, 0.45);
+  background: rgba(255, 240, 184, 0.92);
   border: 1px dashed #9f7b22;
 }
 
 .calendar-slot {
+  /* Lanes are laid out after --slot-gutter, so the day view can reserve a
+     strip on the left that stays free for dragging out a new entry. */
+  --slot-gutter: 0px;
+
+  right: auto;
+  left: calc(
+    var(--slot-gutter) + (100% - var(--slot-gutter)) * var(--slot-column, 0) /
+      var(--slot-columns, 1) + 3px
+  );
+  width: calc((100% - var(--slot-gutter)) / var(--slot-columns, 1) - 6px);
   border: 1px solid rgba(45, 32, 56, 0.14);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.25),
@@ -835,6 +859,10 @@
 }
 
 @media (max-width: 640px) {
+  .week-panel.is-day {
+    --day-slot-gutter: 44px;
+  }
+
   .calendar-view-switch,
   .calendar-toolbar-filters {
     width: 100%;

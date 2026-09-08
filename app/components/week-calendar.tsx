@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import {
+  type CSSProperties,
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
   useEffect,
@@ -417,15 +418,16 @@ function CalendarSlot({
   return (
     <article
       className="calendar-slot"
-      style={{
-        top,
-        height,
-        background: entry.project_color,
-        color: readableTextColor(entry.project_color),
-        left: `calc(${(layout.column * 100) / layout.columns}% + 3px)`,
-        width: `calc(${100 / layout.columns}% - 6px)`,
-        right: "auto",
-      }}
+      style={
+        {
+          top,
+          height,
+          background: entry.project_color,
+          color: readableTextColor(entry.project_color),
+          "--slot-column": layout.column,
+          "--slot-columns": layout.columns,
+        } as CSSProperties
+      }
       onPointerDown={(event) => onPointerDown(entry, "move", event)}
       onDoubleClick={(event) => {
         event.preventDefault();
