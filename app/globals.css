@@ -417,73 +417,93 @@ svg {
 .summary-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
+  gap: 12px;
   margin: 18px 0;
 }
 
 .summary-card {
+  --summary-accent: var(--line-strong);
+  --summary-tint: var(--cream);
+
   position: relative;
   display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 4px 12px;
-  min-height: 128px;
-  padding: 20px;
+  align-content: space-between;
+  gap: 16px;
+  min-height: 104px;
+  padding: 15px 18px 17px;
   overflow: hidden;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 18px;
+  box-shadow: 0 7px 24px rgba(45, 32, 56, 0.04);
 }
 
-.summary-card:nth-child(1) {
-  background: var(--butter-soft);
-}
-
-.summary-card:nth-child(2) {
-  background: var(--mint-soft);
-}
-
-.summary-card.accent {
-  background: var(--coral-soft);
+.summary-card::before {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 3px;
+  background: var(--summary-accent);
+  content: "";
 }
 
 .summary-card.butter {
-  background: var(--butter-soft);
+  --summary-accent: var(--butter);
+  --summary-tint: var(--butter-soft);
 }
 
 .summary-card.mint {
-  background: var(--mint-soft);
+  --summary-accent: var(--mint);
+  --summary-tint: var(--mint-soft);
 }
 
 .summary-card.coral {
-  background: var(--coral-soft);
+  --summary-accent: var(--coral);
+  --summary-tint: var(--coral-soft);
 }
 
 .summary-card.lavender {
-  background: #eee7f4;
+  --summary-accent: #a98bc7;
+  --summary-tint: #eee7f4;
+}
+
+.summary-card-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
 }
 
 .summary-card-icon {
   display: grid;
-  grid-row: span 2;
+  flex: 0 0 auto;
   place-items: center;
-  align-self: start;
-  width: 40px;
-  height: 40px;
-  color: white;
-  background: var(--ink);
-  border-radius: 13px;
+  width: 28px;
+  height: 28px;
+  color: var(--ink);
+  background: var(--summary-tint);
+  border-radius: 9px;
+}
+
+.summary-card-icon svg {
+  width: 15px;
+  height: 15px;
 }
 
 .summary-label {
-  align-self: end;
+  overflow: hidden;
   color: var(--ink-soft);
-  font-size: 12px;
-  font-weight: 650;
+  font-size: 11px;
+  font-weight: 750;
+  text-transform: uppercase;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  letter-spacing: 0.07em;
 }
 
-.summary-card strong {
-  align-self: start;
-  font-size: clamp(22px, 2.3vw, 30px);
+.summary-value {
+  font-size: clamp(24px, 2.1vw, 31px);
   line-height: 1;
   letter-spacing: -0.045em;
 }

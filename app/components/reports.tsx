@@ -628,11 +628,13 @@ function Summary({
 }) {
   return (
     <div className={`summary-card ${tone}`}>
-      <span className="summary-card-icon">
-        <Icon name={icon} />
+      <span className="summary-card-head">
+        <span className="summary-card-icon">
+          <Icon name={icon} />
+        </span>
+        <span className="summary-label">{label}</span>
       </span>
-      <span className="summary-label">{label}</span>
-      <strong>{value}</strong>
+      <strong className="summary-value">{value}</strong>
     </div>
   );
 }
