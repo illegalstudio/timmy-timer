@@ -15,39 +15,20 @@ import { EmptyState } from "./empty-state";
 import { Icon, type IconName } from "./icon";
 import { SmartSelect } from "./smart-select";
 
-type Preset =
-  | "today"
-  | "yesterday"
-  | "this-week"
-  | "last-week"
-  | "last-7-days"
-  | "this-month"
-  | "last-month"
-  | "last-30-days"
-  | "this-quarter"
-  | "this-year"
-  | "last-year"
-  | "all-time"
-  | "custom";
+type Granularity = "day" | "week" | "month" | "year" | "custom";
+type Step = Exclude<Granularity, "custom">;
+type Range = { from: string; to: string };
 
 type BillingStatus = "all" | "to-invoice" | "invoiced" | "non-billable";
 
 const PAGE_SIZE = 10;
 
-const PRESETS: Array<{ value: Preset; labelKey: MessageKey }> = [
-  { value: "today", labelKey: "reports.preset.today" },
-  { value: "yesterday", labelKey: "reports.preset.yesterday" },
-  { value: "this-week", labelKey: "reports.preset.thisWeek" },
-  { value: "last-week", labelKey: "reports.preset.lastWeek" },
-  { value: "last-7-days", labelKey: "reports.preset.last7Days" },
-  { value: "this-month", labelKey: "reports.preset.thisMonth" },
-  { value: "last-month", labelKey: "reports.preset.lastMonth" },
-  { value: "last-30-days", labelKey: "reports.preset.last30Days" },
-  { value: "this-quarter", labelKey: "reports.preset.thisQuarter" },
-  { value: "this-year", labelKey: "reports.preset.thisYear" },
-  { value: "last-year", labelKey: "reports.preset.lastYear" },
-  { value: "all-time", labelKey: "reports.preset.allTime" },
-  { value: "custom", labelKey: "reports.preset.custom" },
+const GRANULARITIES: Array<{ value: Granularity; labelKey: MessageKey }> = [
+  { value: "day", labelKey: "reports.period.day" },
+  { value: "week", labelKey: "reports.period.week" },
+  { value: "month", labelKey: "reports.period.month" },
+  { value: "year", labelKey: "reports.period.year" },
+  { value: "custom", labelKey: "reports.period.custom" },
 ];
 
 const BILLING_STATUSES: Array<{
@@ -69,9 +50,11 @@ export function Reports({
 }) {
   const { localeTag, t } = useI18n();
   const [initialFilters] = useState(() => getInitialFilters(entries));
-  const [preset, setPreset] = useState<Preset>(initialFilters.preset);
-  const [from, setFrom] = useState(initialFilters.from);
-  const [to, setTo] = useState(initialFilters.to);
+  const [granularity, setGranularity] = useState<Granularity>(
+    initialFilters.granularity,
+  );
+  const [anchor, setAnchor] = useState(initialFilters.anchor);
+  const [custom, setCustom] = useState<Range>(initialFilters.custom);
   const [clientId, setClientId] = useState(initialFilters.clientId);
   const [projectId, setProjectId] = useState(initialFilters.projectId);
   const [billingStatus, setBillingStatus] = useState<BillingStatus>(
@@ -121,19 +104,25 @@ export function Reports({
     [entries, clientId, localeTag],
   );
 
+  // The visible range is derived: a granularity plus the anchor date it is
+  // centred on, so the arrows only ever have to move the anchor.
+  const { from, to } =
+    granularity === "custom" ? custom : getPeriodRange(granularity, anchor);
+  const periodLabel = formatPeriodLabel(granularity, anchor, localeTag);
+  const isCurrentPeriod =
+    granularity !== "custom" && withinRange(dateValue(new Date()), from, to);
+
   const scopedEntries = useMemo(
     () =>
       entries.filter((entry) => {
         const date = toLocalInput(entry.started_at).slice(0, 10);
-        const matchesDate =
-          preset === "all-time" || (date >= from && date <= to);
         const matchesClient =
           clientId === "all" || entry.client_id === Number(clientId);
         const matchesProject =
           projectId === "all" || entry.project_id === Number(projectId);
-        return matchesDate && matchesClient && matchesProject;
+        return withinRange(date, from, to) && matchesClient && matchesProject;
       }),
-    [entries, from, to, clientId, projectId, preset],
+    [entries, from, to, clientId, projectId],
   );
 
   const filtered = useMemo(
@@ -189,31 +178,32 @@ export function Reports({
     setPage(1);
   }
 
-  function selectPreset(value: Preset) {
+  function selectGranularity(value: Granularity) {
     resetFilterView();
-    setPreset(value);
-    if (value === "custom") return;
-    if (value === "all-time") {
-      const range = getAllTimeRange(entries);
-      setFrom(range.from);
-      setTo(range.to);
-      return;
-    }
-    const range = getPresetRange(value);
-    setFrom(range.from);
-    setTo(range.to);
+    // Switching to Custom keeps whatever range was on screen.
+    if (value === "custom" && granularity !== "custom") setCustom({ from, to });
+    setGranularity(value);
+  }
+
+  function movePeriod(direction: number) {
+    if (granularity === "custom") return;
+    resetFilterView();
+    setAnchor(shiftAnchor(granularity, anchor, direction));
+  }
+
+  function goToCurrentPeriod() {
+    resetFilterView();
+    setAnchor(dateValue(new Date()));
   }
 
   function changeFrom(value: string) {
     resetFilterView();
-    setPreset("custom");
-    setFrom(value);
+    setCustom((range) => ({ ...range, from: value }));
   }
 
   function changeTo(value: string) {
     resetFilterView();
-    setPreset("custom");
-    setTo(value);
+    setCustom((range) => ({ ...range, to: value }));
   }
 
   function changeClient(value: string) {
@@ -323,13 +313,7 @@ export function Reports({
     document.setFontSize(20);
     document.text(t("reports.pdf.title"), 16, 20);
     document.setFontSize(10);
-    document.text(
-      preset === "all-time"
-        ? t("reports.preset.allTime")
-        : `${formatDate(from, localeTag)} – ${formatDate(to, localeTag)}`,
-      16,
-      28,
-    );
+    document.text(periodLabel, 16, 28);
 
     let y = 40;
     for (const entry of filtered) {
@@ -412,73 +396,112 @@ export function Reports({
           </div>
         </div>
         <div className="report-filters">
-          <SmartSelect
-            label={t("reports.period")}
-            value={preset}
-            onValueChange={(value) => selectPreset(value as Preset)}
-            searchPlaceholder={t("reports.searchPeriod")}
-            options={PRESETS.map((item) => ({
-              value: item.value,
-              label: t(item.labelKey),
-            }))}
-          />
-          <label>
-            {t("reports.from")}
-            <input
-              type="date"
-              value={from}
-              disabled={preset === "all-time"}
-              onChange={(event) => changeFrom(event.target.value)}
+          <div className="report-period">
+            <div
+              className="period-switch"
+              role="group"
+              aria-label={t("reports.periodAria")}
+            >
+              {GRANULARITIES.map((item) => (
+                <button
+                  key={item.value}
+                  type="button"
+                  aria-pressed={granularity === item.value}
+                  onClick={() => selectGranularity(item.value)}
+                >
+                  {t(item.labelKey)}
+                </button>
+              ))}
+            </div>
+            {granularity === "custom" ? (
+              <div className="period-custom">
+                <label>
+                  {t("reports.from")}
+                  <input
+                    type="date"
+                    value={custom.from}
+                    onChange={(event) => changeFrom(event.target.value)}
+                  />
+                </label>
+                <label>
+                  {t("reports.to")}
+                  <input
+                    type="date"
+                    value={custom.to}
+                    onChange={(event) => changeTo(event.target.value)}
+                  />
+                </label>
+              </div>
+            ) : (
+              <div className="period-nav">
+                <button
+                  type="button"
+                  onClick={() => movePeriod(-1)}
+                  aria-label={t("reports.previousPeriod")}
+                >
+                  <Icon name="chevron-left" />
+                </button>
+                <button
+                  className="period-now"
+                  type="button"
+                  onClick={goToCurrentPeriod}
+                  disabled={isCurrentPeriod}
+                  aria-label={t("reports.currentPeriod")}
+                >
+                  <span />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => movePeriod(1)}
+                  aria-label={t("reports.nextPeriod")}
+                >
+                  <Icon name="chevron-right" />
+                </button>
+                <strong className="period-label">{periodLabel}</strong>
+              </div>
+            )}
+          </div>
+          <div className="report-scope">
+            <SmartSelect
+              label={t("reports.client")}
+              value={clientId}
+              onValueChange={changeClient}
+              searchPlaceholder={t("reports.searchClient")}
+              options={[
+                { value: "all", label: t("reports.allClients") },
+                ...clients.map((client) => ({
+                  value: String(client.id),
+                  label: client.name,
+                })),
+              ]}
             />
-          </label>
-          <label>
-            {t("reports.to")}
-            <input
-              type="date"
-              value={to}
-              disabled={preset === "all-time"}
-              onChange={(event) => changeTo(event.target.value)}
+            <SmartSelect
+              label={t("reports.project")}
+              value={projectId}
+              onValueChange={changeProject}
+              searchPlaceholder={t("reports.searchProject")}
+              options={[
+                { value: "all", label: t("reports.allProjects") },
+                ...projects.map((project) => ({
+                  value: String(project.id),
+                  label: project.name,
+                  hint: clients.find((client) => client.id === project.clientId)
+                    ?.name,
+                  color: project.color,
+                })),
+              ]}
             />
-          </label>
-          <SmartSelect
-            label={t("reports.client")}
-            value={clientId}
-            onValueChange={changeClient}
-            searchPlaceholder={t("reports.searchClient")}
-            options={[
-              { value: "all", label: t("reports.allClients") },
-              ...clients.map((client) => ({
-                value: String(client.id),
-                label: client.name,
-              })),
-            ]}
-          />
-          <SmartSelect
-            label={t("reports.project")}
-            value={projectId}
-            onValueChange={changeProject}
-            searchPlaceholder={t("reports.searchProject")}
-            options={[
-              { value: "all", label: t("reports.allProjects") },
-              ...projects.map((project) => ({
-                value: String(project.id),
-                label: project.name,
-                hint: clients.find((client) => client.id === project.clientId)
-                  ?.name,
-                color: project.color,
-              })),
-            ]}
-          />
-          <SmartSelect
-            label={t("reports.billingStatus")}
-            value={billingStatus}
-            onValueChange={changeBillingStatus}
-            searchPlaceholder={t("reports.searchBillingStatus")}
-            options={BILLING_STATUSES.map((status) => ({
-              value: status.value,
-              label: t(status.labelKey),
-            }))}
-          />
+            <SmartSelect
+              label={t("reports.billingStatus")}
+              value={billingStatus}
+              onValueChange={changeBillingStatus}
+              searchPlaceholder={t("reports.searchBillingStatus")}
+              options={BILLING_STATUSES.map((status) => ({
+                value: status.value,
+                label: t(status.labelKey),
+              }))}
+            />
+          </div>
         </div>
       </div>
       <div className="summary-grid report-summary billing-summary">
@@ -739,46 +762,42 @@ function billingNoticeKey(invoiced: boolean, count: number): MessageKey {
 }
 
 function getInitialFilters(entries: Entry[]): {
-  preset: Preset;
-  from: string;
-  to: string;
+  granularity: Granularity;
+  anchor: string;
+  custom: Range;
   billingStatus: BillingStatus;
   clientId: string;
   projectId: string;
 } {
-  const defaultRange = getPresetRange("this-month");
-  if (typeof window === "undefined") {
-    return {
-      preset: "this-month",
-      ...defaultRange,
-      billingStatus: "all",
-      clientId: "all",
-      projectId: "all",
-    };
-  }
+  const today = dateValue(new Date());
+  const base = {
+    granularity: "month" as Granularity,
+    anchor: today,
+    custom: { from: today, to: today },
+    billingStatus: "all" as BillingStatus,
+    clientId: "all",
+    projectId: "all",
+  };
+  if (typeof window === "undefined") return base;
+
   const params = new URLSearchParams(window.location.search);
   const requestedBilling = params.get("billing");
-  const billingStatus = isBillingStatus(requestedBilling)
-    ? requestedBilling
-    : "all";
-  const clientId = requestedId(params.get("client"), entries, "client_id");
-  const projectId = requestedId(params.get("project"), entries, "project_id");
+  const filters = {
+    ...base,
+    billingStatus: isBillingStatus(requestedBilling) ? requestedBilling : "all",
+    clientId: requestedId(params.get("client"), entries, "client_id"),
+    projectId: requestedId(params.get("project"), entries, "project_id"),
+  };
+  // The calendar links here to show everything still to invoice, which the
+  // period model expresses as a custom range covering every entry.
   if (params.get("period") === "all-time") {
     return {
-      preset: "all-time",
-      ...getAllTimeRange(entries),
-      billingStatus,
-      clientId,
-      projectId,
+      ...filters,
+      granularity: "custom",
+      custom: getAllTimeRange(entries),
     };
   }
-  return {
-    preset: "this-month",
-    ...defaultRange,
-    billingStatus,
-    clientId,
-    projectId,
-  };
+  return filters;
 }
 
 // Only accept an id the report can actually show, so a stale link cannot
@@ -793,7 +812,7 @@ function requestedId(
     : "all";
 }
 
-function getAllTimeRange(entries: Entry[]) {
+function getAllTimeRange(entries: Entry[]): Range {
   const dates = entries.map((entry) =>
     toLocalInput(entry.started_at).slice(0, 10),
   );
@@ -808,61 +827,97 @@ function getAllTimeRange(entries: Entry[]) {
   };
 }
 
-function getPresetRange(preset: Exclude<Preset, "custom" | "all-time">) {
-  const now = startOfDay(new Date());
-  let from = new Date(now);
-  let to = new Date(now);
-
-  if (preset === "yesterday") {
-    from.setDate(from.getDate() - 1);
-    to = new Date(from);
-  } else if (preset === "this-week") {
-    from = startOfWeek(now);
-    to = endOfWeek(now);
-  } else if (preset === "last-week") {
-    to = startOfWeek(now);
-    to.setDate(to.getDate() - 1);
-    from = startOfWeek(to);
-  } else if (preset === "last-7-days") {
-    from.setDate(from.getDate() - 6);
-  } else if (preset === "this-month") {
-    from = new Date(now.getFullYear(), now.getMonth(), 1);
-    to = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-  } else if (preset === "last-month") {
-    from = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    to = new Date(now.getFullYear(), now.getMonth(), 0);
-  } else if (preset === "last-30-days") {
-    from.setDate(from.getDate() - 29);
-  } else if (preset === "this-quarter") {
-    const quarterStart = Math.floor(now.getMonth() / 3) * 3;
-    from = new Date(now.getFullYear(), quarterStart, 1);
-    to = new Date(now.getFullYear(), quarterStart + 3, 0);
-  } else if (preset === "this-year") {
-    from = new Date(now.getFullYear(), 0, 1);
-    to = new Date(now.getFullYear(), 11, 31);
-  } else if (preset === "last-year") {
-    from = new Date(now.getFullYear() - 1, 0, 1);
-    to = new Date(now.getFullYear() - 1, 11, 31);
+function getPeriodRange(step: Step, anchor: string): Range {
+  const date = anchorDate(anchor);
+  if (step === "day") return { from: dateValue(date), to: dateValue(date) };
+  if (step === "week") {
+    const from = startOfWeek(date);
+    const to = new Date(from);
+    to.setDate(to.getDate() + 6);
+    return { from: dateValue(from), to: dateValue(to) };
   }
-
-  return { from: dateValue(from), to: dateValue(to) };
+  if (step === "month") {
+    return {
+      from: dateValue(new Date(date.getFullYear(), date.getMonth(), 1)),
+      to: dateValue(new Date(date.getFullYear(), date.getMonth() + 1, 0)),
+    };
+  }
+  return {
+    from: dateValue(new Date(date.getFullYear(), 0, 1)),
+    to: dateValue(new Date(date.getFullYear(), 11, 31)),
+  };
 }
 
-function startOfDay(date: Date) {
-  const value = new Date(date);
-  value.setHours(0, 0, 0, 0);
-  return value;
+function shiftAnchor(step: Step, anchor: string, direction: number) {
+  const date = anchorDate(anchor);
+  if (step === "day") date.setDate(date.getDate() + direction);
+  else if (step === "week") date.setDate(date.getDate() + direction * 7);
+  // Land on the first day, so stepping out of a long month cannot skip a
+  // short one (31 March + 1 month would otherwise reach May).
+  else if (step === "month") date.setMonth(date.getMonth() + direction, 1);
+  else date.setFullYear(date.getFullYear() + direction, 0, 1);
+  return dateValue(date);
+}
+
+function formatPeriodLabel(
+  granularity: Granularity,
+  anchor: string,
+  locale: string,
+) {
+  if (granularity === "custom") {
+    const range = getPeriodRange("day", anchor);
+    return `${formatDate(range.from, locale)} – ${formatDate(range.to, locale)}`;
+  }
+  const date = anchorDate(anchor);
+  if (granularity === "day") {
+    return date.toLocaleDateString(locale, {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  }
+  if (granularity === "week") {
+    const { from, to } = getPeriodRange("week", anchor);
+    return formatWeekLabel(from, to, locale);
+  }
+  if (granularity === "month") {
+    return date.toLocaleDateString(locale, { month: "long", year: "numeric" });
+  }
+  return String(date.getFullYear());
+}
+
+function formatWeekLabel(from: string, to: string, locale: string) {
+  const start = anchorDate(from);
+  const end = anchorDate(to);
+  const sameMonth =
+    start.getMonth() === end.getMonth() &&
+    start.getFullYear() === end.getFullYear();
+  const startLabel = start.toLocaleDateString(locale, {
+    day: "numeric",
+    month: sameMonth ? undefined : "short",
+  });
+  const endLabel = end.toLocaleDateString(locale, {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+  return `${startLabel} – ${endLabel}`;
+}
+
+function withinRange(date: string, from: string, to: string) {
+  return date >= from && date <= to;
+}
+
+// Midday, so daylight-saving shifts cannot move the date across a boundary.
+function anchorDate(value: string) {
+  return new Date(`${value}T12:00:00`);
 }
 
 function startOfWeek(date: Date) {
-  const value = startOfDay(date);
+  const value = new Date(date);
+  value.setHours(0, 0, 0, 0);
   value.setDate(value.getDate() - ((value.getDay() + 6) % 7));
-  return value;
-}
-
-function endOfWeek(date: Date) {
-  const value = startOfWeek(date);
-  value.setDate(value.getDate() + 6);
   return value;
 }
 

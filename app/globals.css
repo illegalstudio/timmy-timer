@@ -778,8 +778,109 @@ svg {
 
 .report-filters {
   display: grid;
+  gap: 15px;
+}
+
+.report-scope {
+  display: grid;
   grid-template-columns: repeat(3, minmax(145px, 1fr));
   gap: 10px;
+}
+
+.report-period {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.period-switch {
+  display: flex;
+  gap: 3px;
+  padding: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 13px;
+}
+
+.period-switch button {
+  min-height: 32px;
+  padding: 6px 14px;
+  color: #cfc6d2;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  background: transparent;
+  border: 0;
+  border-radius: 10px;
+}
+
+.period-switch button:hover {
+  color: white;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.period-switch button[aria-pressed="true"] {
+  color: var(--ink);
+  background: var(--butter);
+}
+
+.period-nav {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.period-nav button {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  color: white;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 10px;
+}
+
+.period-nav button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.period-nav button:disabled {
+  cursor: default;
+  opacity: 0.42;
+}
+
+.period-nav svg {
+  width: 15px;
+  height: 15px;
+}
+
+.period-now span {
+  width: 9px;
+  height: 9px;
+  background: currentColor;
+  border-radius: 50%;
+}
+
+.period-label {
+  margin-left: 5px;
+  color: white;
+  font-size: 15px;
+  font-weight: 750;
+  text-transform: capitalize;
+  letter-spacing: -0.02em;
+}
+
+.period-custom {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.period-custom label {
+  width: 168px;
 }
 
 .report-filters label {
@@ -2271,7 +2372,7 @@ button:disabled {
     grid-template-columns: repeat(4, minmax(190px, 1fr));
   }
 
-  .report-filters {
+  .report-scope {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -2400,13 +2501,33 @@ button:disabled {
     padding: 17px;
   }
 
-  .report-filters {
-    grid-template-columns: 1fr 1fr;
+  .report-scope {
+    grid-template-columns: 1fr;
   }
 
-  .report-filters > :first-child,
-  .report-filters > :nth-child(n + 4) {
-    grid-column: 1 / -1;
+  .period-switch,
+  .period-nav {
+    width: 100%;
+  }
+
+  .period-switch button {
+    flex: 1;
+    padding-inline: 8px;
+  }
+
+  .period-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .period-custom {
+    width: 100%;
+  }
+
+  .period-custom label {
+    flex: 1 1 140px;
+    width: auto;
   }
 
   .report-row {
