@@ -1072,6 +1072,82 @@ svg {
   background: #eee9e3;
 }
 
+.report-chart {
+  margin: 0 0 14px;
+  padding: 18px 18px 14px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  box-shadow: 0 7px 24px rgba(45, 32, 56, 0.04);
+}
+
+.report-chart .recharts-surface {
+  overflow: visible;
+}
+
+.chart-tip {
+  display: grid;
+  gap: 3px;
+  max-width: 230px;
+  padding: 9px 11px;
+  color: white;
+  font-size: 11px;
+  background: var(--ink);
+  border-radius: 12px;
+  box-shadow: 0 14px 34px rgba(45, 32, 56, 0.28);
+}
+
+.chart-tip strong {
+  font-size: 11px;
+  text-transform: capitalize;
+}
+
+.chart-tip > b {
+  margin-bottom: 2px;
+  color: var(--butter);
+  font-size: 14px;
+}
+
+.chart-tip > span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #d6cede;
+}
+
+.chart-tip em {
+  margin-left: auto;
+  padding-left: 10px;
+  color: white;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.chart-tip i,
+.chart-legend i {
+  flex: 0 0 auto;
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+}
+
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin: 10px 0 0;
+  padding-top: 12px;
+  color: var(--ink-soft);
+  font-size: 11px;
+  border-top: 1px solid var(--line);
+}
+
+.chart-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
 .report-pagination {
   display: flex;
   align-items: center;
@@ -2527,6 +2603,10 @@ button:disabled {
 
   .report-pagination {
     padding-inline: 15px;
+  }
+
+  .report-chart {
+    padding: 16px 14px 12px;
   }
 
   .report-duration,

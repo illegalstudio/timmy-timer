@@ -191,6 +191,8 @@ export const de = {
   "reports.pageOf": "Seite {page} von {pages}",
   "reports.previousPage": "Vorherige Seite",
   "reports.nextPage": "Nächste Seite",
+  "reports.chartAria": "Erfasste Zeit pro Zeitraum",
+  "reports.chartOther": "Andere",
   "reports.table.date": "Datum",
   "reports.table.activity": "Aktivität",
   "reports.table.status": "Status",

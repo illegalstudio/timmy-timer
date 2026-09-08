@@ -13,6 +13,7 @@ import {
 import type { Entry, Mutate } from "../lib/types";
 import { EmptyState } from "./empty-state";
 import { Icon, type IconName } from "./icon";
+import { ReportChart } from "./report-chart";
 import { SmartSelect } from "./smart-select";
 
 type Granularity = "day" | "week" | "month" | "year" | "custom";
@@ -572,6 +573,7 @@ export function Reports({
           {t(billingNotice.key, { count: billingNotice.count })}
         </p>
       )}
+      <ReportChart entries={filtered} from={from} to={to} />
       <div className="panel report-table">
         {!!filtered.length && (
           <div className="report-row report-head">

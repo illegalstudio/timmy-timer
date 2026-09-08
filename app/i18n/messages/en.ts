@@ -183,6 +183,8 @@ export const en = {
   "reports.pageOf": "Page {page} of {pages}",
   "reports.previousPage": "Previous page",
   "reports.nextPage": "Next page",
+  "reports.chartAria": "Tracked time per period",
+  "reports.chartOther": "Other",
   "reports.table.date": "Date",
   "reports.table.activity": "Activity",
   "reports.table.status": "Status",

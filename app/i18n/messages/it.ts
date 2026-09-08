@@ -186,6 +186,8 @@ export const it = {
   "reports.pageOf": "Pagina {page} di {pages}",
   "reports.previousPage": "Pagina precedente",
   "reports.nextPage": "Pagina successiva",
+  "reports.chartAria": "Tempo tracciato per periodo",
+  "reports.chartOther": "Altri",
   "reports.table.date": "Data",
   "reports.table.activity": "Attività",
   "reports.table.status": "Stato",
