@@ -413,26 +413,7 @@ export function Reports({
                 </button>
               ))}
             </div>
-            {granularity === "custom" ? (
-              <div className="period-custom">
-                <label>
-                  {t("reports.from")}
-                  <input
-                    type="date"
-                    value={custom.from}
-                    onChange={(event) => changeFrom(event.target.value)}
-                  />
-                </label>
-                <label>
-                  {t("reports.to")}
-                  <input
-                    type="date"
-                    value={custom.to}
-                    onChange={(event) => changeTo(event.target.value)}
-                  />
-                </label>
-              </div>
-            ) : (
+            {granularity !== "custom" && (
               <div className="period-nav">
                 <button
                   type="button"
@@ -461,6 +442,26 @@ export function Reports({
               </div>
             )}
           </div>
+          {granularity === "custom" && (
+            <div className="period-custom">
+              <label>
+                {t("reports.from")}
+                <input
+                  type="date"
+                  value={custom.from}
+                  onChange={(event) => changeFrom(event.target.value)}
+                />
+              </label>
+              <label>
+                {t("reports.to")}
+                <input
+                  type="date"
+                  value={custom.to}
+                  onChange={(event) => changeTo(event.target.value)}
+                />
+              </label>
+            </div>
+          )}
           <div className="report-scope">
             <SmartSelect
               label={t("reports.client")}
