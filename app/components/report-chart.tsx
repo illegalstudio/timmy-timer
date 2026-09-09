@@ -40,10 +40,14 @@ export function ReportChart({
   entries,
   from,
   to,
+  projectId,
+  onSelectProject,
 }: {
   entries: Entry[];
   from: string;
   to: string;
+  projectId: string;
+  onSelectProject: (value: string) => void;
 }) {
   const { localeTag, t } = useI18n();
 
@@ -106,14 +110,31 @@ export function ReportChart({
           ))}
         </BarChart>
       </ResponsiveContainer>
-      {series.length > 1 && (
+      {(series.length > 1 || projectId !== "all") && (
         <figcaption className="chart-legend">
-          {series.map((item) => (
-            <span key={item.key}>
-              <i style={{ background: item.color }} />
-              {item.name}
-            </span>
-          ))}
+          {series.map((item) =>
+            // "Other" stands for several projects, so there is nothing single
+            // to filter by: it stays plain text.
+            item.key === OTHER_KEY ? (
+              <span className="chart-legend-item" key={item.key}>
+                <i style={{ background: item.color }} />
+                {item.name}
+              </span>
+            ) : (
+              <button
+                className="chart-legend-item"
+                type="button"
+                key={item.key}
+                aria-pressed={projectId === item.key}
+                onClick={() =>
+                  onSelectProject(projectId === item.key ? "all" : item.key)
+                }
+              >
+                <i style={{ background: item.color }} />
+                {item.name}
+              </button>
+            ),
+          )}
         </figcaption>
       )}
     </figure>

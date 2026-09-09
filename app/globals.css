@@ -1194,10 +1194,32 @@ svg {
   border-top: 1px solid var(--line);
 }
 
-.chart-legend span {
+.chart-legend-item {
   display: inline-flex;
   align-items: center;
   gap: 7px;
+  padding: 0;
+  color: var(--ink-soft);
+  font-size: 11px;
+  background: transparent;
+  border: 0;
+}
+
+button.chart-legend-item {
+  padding: 3px 9px 3px 7px;
+  margin: -3px 0;
+  border-radius: 999px;
+}
+
+button.chart-legend-item:hover {
+  color: var(--ink);
+  background: var(--cream);
+}
+
+button.chart-legend-item[aria-pressed="true"] {
+  color: var(--ink);
+  font-weight: 700;
+  background: var(--butter-soft);
 }
 
 .report-pagination {

@@ -573,7 +573,13 @@ export function Reports({
           {t(billingNotice.key, { count: billingNotice.count })}
         </p>
       )}
-      <ReportChart entries={filtered} from={from} to={to} />
+      <ReportChart
+        entries={filtered}
+        from={from}
+        to={to}
+        projectId={projectId}
+        onSelectProject={changeProject}
+      />
       <div className="panel report-table">
         {!!filtered.length && (
           <div className="report-row report-head">
