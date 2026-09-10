@@ -183,6 +183,10 @@ export const en = {
   "reports.pageOf": "Page {page} of {pages}",
   "reports.previousPage": "Previous page",
   "reports.nextPage": "Next page",
+  "reports.chartPace": "Expected pace",
+  "reports.forecastTitle": "Estimated at end of period",
+  "reports.forecastNote":
+    "At your pace so far, counting weekdays and weekends apart.",
   "reports.chartAria": "Tracked time per period",
   "reports.chartOther": "Other",
   "reports.table.date": "Date",

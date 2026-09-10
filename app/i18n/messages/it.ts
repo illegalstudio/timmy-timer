@@ -186,6 +186,10 @@ export const it = {
   "reports.pageOf": "Pagina {page} di {pages}",
   "reports.previousPage": "Pagina precedente",
   "reports.nextPage": "Pagina successiva",
+  "reports.chartPace": "Ritmo previsto",
+  "reports.forecastTitle": "Stima a fine periodo",
+  "reports.forecastNote":
+    "Al ritmo tenuto finora, contando a parte feriali e weekend.",
   "reports.chartAria": "Tempo tracciato per periodo",
   "reports.chartOther": "Altri",
   "reports.table.date": "Data",

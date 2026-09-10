@@ -191,6 +191,10 @@ export const fr = {
   "reports.pageOf": "Page {page} sur {pages}",
   "reports.previousPage": "Page précédente",
   "reports.nextPage": "Page suivante",
+  "reports.chartPace": "Rythme prévu",
+  "reports.forecastTitle": "Estimation en fin de période",
+  "reports.forecastNote":
+    "À votre rythme actuel, jours ouvrés et week-ends comptés séparément.",
   "reports.chartAria": "Temps suivi par période",
   "reports.chartOther": "Autres",
   "reports.table.date": "Date",

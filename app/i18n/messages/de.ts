@@ -191,6 +191,10 @@ export const de = {
   "reports.pageOf": "Seite {page} von {pages}",
   "reports.previousPage": "Vorherige Seite",
   "reports.nextPage": "Nächste Seite",
+  "reports.chartPace": "Erwartetes Tempo",
+  "reports.forecastTitle": "Schätzung zum Periodenende",
+  "reports.forecastNote":
+    "Im bisherigen Tempo, Werktage und Wochenenden getrennt gerechnet.",
   "reports.chartAria": "Erfasste Zeit pro Zeitraum",
   "reports.chartOther": "Andere",
   "reports.table.date": "Datum",

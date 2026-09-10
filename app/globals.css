@@ -1124,6 +1124,56 @@ svg {
   background: #eee9e3;
 }
 
+.forecast-row {
+  margin: -4px 0 18px;
+}
+
+.forecast-row .summary-grid {
+  margin: 0;
+}
+
+.forecast-heading {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin: 0 0 9px;
+  padding-left: 2px;
+}
+
+.forecast-heading strong {
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.forecast-heading small {
+  color: var(--ink-soft);
+  font-size: 11px;
+}
+
+/* Estimates must not read as recorded figures. */
+.summary-card.is-estimate {
+  background: transparent;
+  border-style: dashed;
+  border-color: var(--line-strong);
+  box-shadow: none;
+}
+
+.summary-card.is-estimate::before {
+  background: repeating-linear-gradient(
+    90deg,
+    var(--summary-accent) 0 6px,
+    transparent 6px 12px
+  );
+}
+
+.summary-card.is-estimate .summary-value {
+  color: var(--ink-soft);
+}
+
 .report-chart {
   margin: 0 0 14px;
   padding: 18px 18px 14px;
@@ -1173,6 +1223,14 @@ svg {
   color: white;
   font-style: normal;
   font-weight: 700;
+}
+
+.chart-legend-pace {
+  width: 16px !important;
+  height: 0 !important;
+  border-top: 2px dashed var(--ink);
+  border-radius: 0 !important;
+  background: none !important;
 }
 
 .chart-tip i,

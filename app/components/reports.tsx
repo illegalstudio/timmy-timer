@@ -14,6 +14,7 @@ import type { Entry, Mutate } from "../lib/types";
 import { EmptyState } from "./empty-state";
 import { Icon, type IconName } from "./icon";
 import { ReportChart } from "./report-chart";
+import { getForecast } from "../lib/forecast";
 import { SmartSelect } from "./smart-select";
 
 type Granularity = "day" | "week" | "month" | "year" | "custom";
@@ -165,6 +166,11 @@ export function Reports({
   const billableCents = scopedEntries.reduce(
     (total, entry) => total + billableAmount(entry),
     0,
+  );
+  // Same scope as the cards above it, so the two rows compare like for like.
+  const forecast = useMemo(
+    () => getForecast(scopedEntries, from, to, dateValue(new Date())),
+    [scopedEntries, from, to],
   );
   const toInvoiceCents = scopedEntries
     .filter((entry) => entry.billable && !entry.invoiced)
@@ -573,6 +579,40 @@ export function Reports({
           {t(billingNotice.key, { count: billingNotice.count })}
         </p>
       )}
+      {forecast && (
+        <section
+          className="forecast-row"
+          aria-label={t("reports.forecastTitle")}
+        >
+          <p className="forecast-heading">
+            <strong>{t("reports.forecastTitle")}</strong>
+            <small>{t("reports.forecastNote")}</small>
+          </p>
+          <div className="summary-grid">
+            <Summary
+              icon="clock"
+              label={t("reports.totalTime")}
+              value={formatDuration(forecast.minutes)}
+              tone="butter"
+              estimate
+            />
+            <Summary
+              icon="coins"
+              label={t("reports.billableValue")}
+              value={formatMoney(forecast.billableCents, localeTag)}
+              tone="mint"
+              estimate
+            />
+            <Summary
+              icon="receipt"
+              label={t("reports.toInvoice")}
+              value={formatMoney(forecast.toInvoiceCents, localeTag)}
+              tone="coral"
+              estimate
+            />
+          </div>
+        </section>
+      )}
       <ReportChart
         entries={filtered}
         from={from}
@@ -701,14 +741,16 @@ function Summary({
   value,
   icon,
   tone,
+  estimate = false,
 }: {
   label: string;
   value: string;
   icon: IconName;
   tone: "butter" | "mint" | "coral" | "lavender";
+  estimate?: boolean;
 }) {
   return (
-    <div className={`summary-card ${tone}`}>
+    <div className={`summary-card ${tone} ${estimate ? "is-estimate" : ""}`}>
       <span className="summary-card-head">
         <span className="summary-card-icon">
           <Icon name={icon} />

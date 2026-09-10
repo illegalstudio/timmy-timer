@@ -3,15 +3,17 @@
 import { useMemo } from "react";
 import {
   Bar,
-  BarChart,
   CartesianGrid,
+  ComposedChart,
+  Line,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
 import { useI18n } from "../i18n/i18n-provider";
-import { entryMinutes, formatDuration } from "../lib/time";
+import { eachDay, expectedMinutes, getForecast } from "../lib/forecast";
+import { entryMinutes, formatDuration, today as todayValue } from "../lib/time";
 import type { Entry } from "../lib/types";
 
 // Beyond this the legend stops being readable, so the tail folds into "Other"
@@ -21,6 +23,7 @@ const OTHER_KEY = "other";
 const OTHER_COLOR = "#6f6878";
 const AXIS_STEPS = [15, 30, 60, 120, 240, 480, 960, 1920, 2880, 5760, 11520];
 const SURFACE = "#fffdfa";
+const PACE = "#2d2038";
 const LINE = "#ded5ca";
 const LINE_STRONG = "#cabdb2";
 const INK_SOFT = "#5f5366";
@@ -51,12 +54,15 @@ export function ReportChart({
 }) {
   const { localeTag, t } = useI18n();
 
-  const { rows, series } = useMemo(
+  const { rows, series, forecast } = useMemo(
     () => buildChart(entries, from, to, localeTag, t("reports.chartOther")),
     [entries, from, to, localeTag, t],
   );
 
-  const peak = rows.reduce((best, row) => Math.max(best, row.total), 0);
+  const peak = rows.reduce(
+    (best, row) => Math.max(best, row.total, Number(row.paceProjected ?? 0)),
+    0,
+  );
   if (!peak) return null;
 
   const step =
@@ -68,7 +74,7 @@ export function ReportChart({
   return (
     <figure className="report-chart" aria-label={t("reports.chartAria")}>
       <ResponsiveContainer width="100%" height={190}>
-        <BarChart
+        <ComposedChart
           accessibilityLayer
           data={rows}
           margin={{ top: 20, right: 6, bottom: 0, left: 0 }}
@@ -95,6 +101,31 @@ export function ReportChart({
             cursor={{ fill: "rgba(244, 201, 93, 0.2)" }}
             content={<ChartTooltip />}
           />
+          {forecast && (
+            <>
+              <Line
+                dataKey="paceActual"
+                name={t("reports.chartPace")}
+                type="linear"
+                stroke={PACE}
+                strokeWidth={2}
+                dot={false}
+                connectNulls={false}
+                isAnimationActive={false}
+              />
+              <Line
+                dataKey="paceProjected"
+                name={t("reports.chartPace")}
+                type="linear"
+                stroke={PACE}
+                strokeWidth={2}
+                strokeDasharray="5 4"
+                dot={false}
+                connectNulls={false}
+                isAnimationActive={false}
+              />
+            </>
+          )}
           {series.map((item) => (
             <Bar
               key={item.key}
@@ -108,9 +139,9 @@ export function ReportChart({
               isAnimationActive={false}
             />
           ))}
-        </BarChart>
+        </ComposedChart>
       </ResponsiveContainer>
-      {(series.length > 1 || projectId !== "all") && (
+      {(series.length > 1 || projectId !== "all" || forecast) && (
         <figcaption className="chart-legend">
           {series.map((item) =>
             // "Other" stands for several projects, so there is nothing single
@@ -135,6 +166,12 @@ export function ReportChart({
               </button>
             ),
           )}
+          {forecast && (
+            <span className="chart-legend-item">
+              <i className="chart-legend-pace" />
+              {t("reports.chartPace")}
+            </span>
+          )}
         </figcaption>
       )}
     </figure>
@@ -143,6 +180,7 @@ export function ReportChart({
 
 type TooltipEntry = {
   name?: string;
+  dataKey?: string | number;
   value?: number;
   color?: string;
   payload?: Row;
@@ -158,7 +196,13 @@ function ChartTooltip({
   const row = payload?.[0]?.payload;
   if (!active || !row) return null;
   const parts = (payload ?? []).filter(
-    (item) => typeof item.value === "number" && item.value > 0,
+    (item) =>
+      typeof item.value === "number" &&
+      item.value > 0 &&
+      !String(item.dataKey ?? "").startsWith("pace"),
+  );
+  const pace = (payload ?? []).find((item) =>
+    String(item.dataKey ?? "").startsWith("pace"),
   );
   return (
     <div className="chart-tip">
@@ -172,6 +216,12 @@ function ChartTooltip({
             <em>{formatDuration(item.value ?? 0)}</em>
           </span>
         ))}
+      {pace && typeof pace.value === "number" && (
+        <span className="chart-tip-pace">
+          {pace.name}
+          <em>{formatDuration(pace.value)}</em>
+        </span>
+      )}
     </div>
   );
 }
@@ -222,9 +272,12 @@ function buildChart(
     (a, b) => order.indexOf(a.key) - order.indexOf(b.key),
   );
 
+  const forecast = getForecast(entries, from, to, todayValue());
+
   const rows: Row[] = generateSlots(unit, from, to, locale).map((slot) => {
     const bucket = totals.get(slot.key);
-    const row: Row = { ...slot, total: 0 };
+    const { days, ...rest } = slot;
+    const row: Row = { ...rest, total: 0 };
     let total = 0;
     for (const item of series) {
       const minutes = bucket?.get(item.key) ?? 0;
@@ -232,10 +285,18 @@ function buildChart(
       total += minutes;
     }
     row.total = total;
+
+    if (forecast && days.length) {
+      const pace = expectedMinutes(forecast, days);
+      const now = todayValue();
+      // The bucket holding today belongs to both lines, so they join up.
+      if (days[0] <= now) row.paceActual = pace;
+      if (days[days.length - 1] >= now) row.paceProjected = pace;
+    }
     return row;
   });
 
-  return { rows, series };
+  return { rows, series, forecast };
 }
 
 function getUnit(from: string, to: string): Unit {
@@ -256,8 +317,10 @@ function slotKey(date: Date, unit: Unit) {
   return date.toLocaleDateString("sv-SE").slice(0, 7);
 }
 
+type Slot = { key: string; label: string; caption: string; days: string[] };
+
 function generateSlots(unit: Unit, from: string, to: string, locale: string) {
-  const slots: Array<{ key: string; label: string; caption: string }> = [];
+  const slots: Slot[] = [];
   const start = atMidday(from);
   const end = atMidday(to);
 
@@ -268,6 +331,7 @@ function generateSlots(unit: Unit, from: string, to: string, locale: string) {
         key: String(hour),
         label: String(hour).padStart(2, "0"),
         caption: `${String(hour).padStart(2, "0")}:00 – ${next}:00`,
+        days: [from],
       });
     }
     return slots;
@@ -275,14 +339,16 @@ function generateSlots(unit: Unit, from: string, to: string, locale: string) {
 
   if (unit === "day") {
     for (const at = new Date(start); at <= end; at.setDate(at.getDate() + 1)) {
+      const day = at.toLocaleDateString("sv-SE");
       slots.push({
-        key: at.toLocaleDateString("sv-SE"),
+        key: day,
         label: String(at.getDate()),
         caption: at.toLocaleDateString(locale, {
           weekday: "long",
           day: "numeric",
           month: "long",
         }),
+        days: [day],
       });
     }
     return slots;
@@ -301,6 +367,7 @@ function generateSlots(unit: Unit, from: string, to: string, locale: string) {
         key: at.toLocaleDateString("sv-SE"),
         label: at.toLocaleDateString(locale, short),
         caption: `${at.toLocaleDateString(locale, short)} – ${last.toLocaleDateString(locale, short)}`,
+        days: clampDays(at, last, from, to),
       });
     }
     return slots;
@@ -311,6 +378,7 @@ function generateSlots(unit: Unit, from: string, to: string, locale: string) {
     at <= end;
     at.setMonth(at.getMonth() + 1)
   ) {
+    const last = new Date(at.getFullYear(), at.getMonth() + 1, 0, 12);
     slots.push({
       key: at.toLocaleDateString("sv-SE").slice(0, 7),
       label: at.toLocaleDateString(locale, { month: "short" }),
@@ -318,6 +386,7 @@ function generateSlots(unit: Unit, from: string, to: string, locale: string) {
         month: "long",
         year: "numeric",
       }),
+      days: clampDays(at, last, from, to),
     });
   }
   return slots;
@@ -333,6 +402,13 @@ function startOfWeek(date: Date) {
 // Midday, so daylight-saving shifts cannot move a date across a boundary.
 function atMidday(value: string) {
   return new Date(`${value}T12:00:00`);
+}
+
+// A bucket at the edge of the range only covers the days inside it.
+function clampDays(start: Date, end: Date, from: string, to: string) {
+  const first = start.toLocaleDateString("sv-SE");
+  const last = end.toLocaleDateString("sv-SE");
+  return eachDay(first < from ? from : first, last > to ? to : last);
 }
 
 function formatAxisValue(minutes: number) {
