@@ -197,6 +197,13 @@ export const de = {
     "Im bisherigen Tempo, Werktage und Wochenenden getrennt gerechnet.",
   "reports.chartAria": "Erfasste Zeit pro Zeitraum",
   "reports.chartOther": "Andere",
+  "reports.chartGhost": "Kommende Auslastung, zum Simulieren ziehen",
+  "reports.chartGhostAria":
+    "Simulierte Auslastung für {period}: {value}. Mit den Pfeiltasten ändern.",
+  "reports.simulated": "Simuliert",
+  "reports.simulationNote":
+    "Mit der im Diagramm gezeichneten Auslastung; Abweichungen beziehen sich auf das bisherige Tempo.",
+  "reports.simulationReset": "Simulation zurücksetzen",
   "reports.table.date": "Datum",
   "reports.table.activity": "Aktivität",
   "reports.table.status": "Status",

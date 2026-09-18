@@ -2806,3 +2806,74 @@ button:disabled {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Workload simulation: ghost bars in the chart and the estimate it moves. */
+.chart-ghost {
+  cursor: ns-resize;
+  touch-action: none;
+  outline: none;
+}
+
+.chart-ghost:hover .chart-ghost-grip,
+.chart-ghost:focus-visible .chart-ghost-grip {
+  fill: var(--butter);
+  stroke: var(--ink);
+  stroke-width: 1.5;
+}
+
+.chart-ghost:focus-visible .chart-ghost-fill {
+  stroke-opacity: 1;
+}
+
+.chart-legend-ghost {
+  background: repeating-linear-gradient(
+    135deg,
+    rgba(45, 32, 56, 0.45) 0 1.5px,
+    transparent 1.5px 4px
+  ) !important;
+  border: 1px dashed rgba(45, 32, 56, 0.5);
+}
+
+.forecast-badge {
+  padding: 2px 8px;
+  color: var(--ink);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  background: var(--butter-soft);
+  border-radius: 999px;
+}
+
+.forecast-reset {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  padding: 3px 9px 3px 6px;
+  color: var(--ink-soft);
+  font-size: 11px;
+  font-weight: 700;
+  background: transparent;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+}
+
+.forecast-reset:hover,
+.forecast-reset:focus-visible {
+  color: var(--ink);
+  background: var(--cream);
+}
+
+.forecast-reset svg {
+  width: 12px;
+  height: 12px;
+}
+
+.summary-delta {
+  margin-top: 6px;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}

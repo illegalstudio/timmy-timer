@@ -14,7 +14,7 @@ import type { Entry, Mutate } from "../lib/types";
 import { EmptyState } from "./empty-state";
 import { Icon, type IconName } from "./icon";
 import { ReportChart } from "./report-chart";
-import { getForecast } from "../lib/forecast";
+import { getForecast, type Simulation } from "../lib/forecast";
 import { SmartSelect } from "./smart-select";
 
 type Granularity = "day" | "week" | "month" | "year" | "custom";
@@ -24,6 +24,7 @@ type Range = { from: string; to: string };
 type BillingStatus = "all" | "to-invoice" | "invoiced" | "non-billable";
 
 const PAGE_SIZE = 10;
+const NO_SIMULATION: Simulation = new Map();
 
 const GRANULARITIES: Array<{ value: Granularity; labelKey: MessageKey }> = [
   { value: "day", labelKey: "reports.period.day" },
@@ -68,6 +69,12 @@ export function Reports({
   const [billingNotice, setBillingNotice] = useState<{
     key: MessageKey;
     count: number;
+  } | null>(null);
+  // A what-if workload for the days ahead. It is tied to the scope it was
+  // drawn for, so changing period or filters simply drops it; nothing is saved.
+  const [whatIf, setWhatIf] = useState<{
+    scope: string;
+    days: Simulation;
   } | null>(null);
 
   const clients = useMemo(
@@ -167,11 +174,37 @@ export function Reports({
     (total, entry) => total + billableAmount(entry),
     0,
   );
+  const scope = `${from}|${to}|${clientId}|${projectId}`;
+  const simulation = whatIf?.scope === scope ? whatIf.days : NO_SIMULATION;
+  const simulating = simulation.size > 0;
   // Same scope as the cards above it, so the two rows compare like for like.
-  const forecast = useMemo(
+  const pace = useMemo(
     () => getForecast(scopedEntries, from, to, dateValue(new Date())),
     [scopedEntries, from, to],
   );
+  const forecast = useMemo(
+    () =>
+      simulating
+        ? getForecast(
+            scopedEntries,
+            from,
+            to,
+            dateValue(new Date()),
+            simulation,
+          )
+        : pace,
+    [scopedEntries, from, to, simulating, simulation, pace],
+  );
+
+  function simulate(changes: Array<[string, number]>) {
+    // Functional, because a drag fires many updates from one stale closure.
+    setWhatIf((previous) => {
+      const days = new Map(previous?.scope === scope ? previous.days : []);
+      for (const [day, minutes] of changes) days.set(day, minutes);
+      return { scope, days };
+    });
+  }
+
   const toInvoiceCents = scopedEntries
     .filter((entry) => entry.billable && !entry.invoiced)
     .reduce((total, entry) => total + entryAmount(entry), 0);
@@ -586,13 +619,35 @@ export function Reports({
         >
           <p className="forecast-heading">
             <strong>{t("reports.forecastTitle")}</strong>
-            <small>{t("reports.forecastNote")}</small>
+            {simulating && (
+              <span className="forecast-badge">{t("reports.simulated")}</span>
+            )}
+            <small>
+              {t(
+                simulating ? "reports.simulationNote" : "reports.forecastNote",
+              )}
+            </small>
+            {simulating && (
+              <button
+                className="forecast-reset"
+                type="button"
+                onClick={() => setWhatIf(null)}
+              >
+                <Icon name="close" />
+                {t("reports.simulationReset")}
+              </button>
+            )}
           </p>
           <div className="summary-grid">
             <Summary
               icon="clock"
               label={t("reports.totalTime")}
               value={formatDuration(forecast.minutes)}
+              delta={
+                simulating && pace
+                  ? signedDuration(forecast.minutes - pace.minutes)
+                  : undefined
+              }
               tone="butter"
               estimate
             />
@@ -600,6 +655,14 @@ export function Reports({
               icon="coins"
               label={t("reports.billableValue")}
               value={formatMoney(forecast.billableCents, localeTag)}
+              delta={
+                simulating && pace
+                  ? signedMoney(
+                      forecast.billableCents - pace.billableCents,
+                      localeTag,
+                    )
+                  : undefined
+              }
               tone="mint"
               estimate
             />
@@ -607,6 +670,14 @@ export function Reports({
               icon="receipt"
               label={t("reports.toInvoice")}
               value={formatMoney(forecast.toInvoiceCents, localeTag)}
+              delta={
+                simulating && pace
+                  ? signedMoney(
+                      forecast.toInvoiceCents - pace.toInvoiceCents,
+                      localeTag,
+                    )
+                  : undefined
+              }
               tone="coral"
               estimate
             />
@@ -619,6 +690,8 @@ export function Reports({
         to={to}
         projectId={projectId}
         onSelectProject={changeProject}
+        simulation={simulation}
+        onSimulate={simulate}
       />
       <div className="panel report-table">
         {!!filtered.length && (
@@ -739,12 +812,15 @@ export function Reports({
 function Summary({
   label,
   value,
+  delta,
   icon,
   tone,
   estimate = false,
 }: {
   label: string;
   value: string;
+  /** Signed difference against the plain projection, shown while simulating. */
+  delta?: string;
   icon: IconName;
   tone: "butter" | "mint" | "coral" | "lavender";
   estimate?: boolean;
@@ -758,8 +834,24 @@ function Summary({
         <span className="summary-label">{label}</span>
       </span>
       <strong className="summary-value">{value}</strong>
+      {delta && <small className="summary-delta">{delta}</small>}
     </div>
   );
+}
+
+function signedDuration(minutes: number) {
+  const rounded = Math.round(minutes);
+  if (!rounded) return "±0";
+  return `${rounded > 0 ? "+" : "−"}${formatDuration(Math.abs(rounded))}`;
+}
+
+function signedMoney(cents: number, locale: string) {
+  if (!Math.round(cents)) return `±${formatMoney(0, locale)}`;
+  return new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency: "EUR",
+    signDisplay: "exceptZero",
+  }).format(cents / 100);
 }
 
 function matchesBillingStatus(entry: Entry, status: BillingStatus) {
