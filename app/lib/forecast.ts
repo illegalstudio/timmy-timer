@@ -1,6 +1,9 @@
 import { entryAmount, entryMinutes, toLocalInput } from "./time";
 import type { Entry } from "./types";
 
+/** Minutes chosen by hand for days still to come, keyed by day. Never stored. */
+export type Simulation = ReadonlyMap<string, number>;
+
 export type Forecast = {
   /** Average tracked minutes on an elapsed weekday, and on an elapsed weekend day. */
   weekdayMinutes: number;
@@ -16,6 +19,9 @@ export type Forecast = {
  * have already gone by. Weekdays and weekend days are averaged apart, so a
  * week of untracked Saturdays is not read as a drop in pace.
  *
+ * A simulation swaps the pace of chosen future days for what-if values, so
+ * the totals answer "and if I worked this much instead?".
+ *
  * Returns null whenever a projection would be guesswork rather than an
  * extrapolation: a period that is over, one that has not started, or one with
  * no completed day to learn from.
@@ -25,6 +31,7 @@ export function getForecast(
   from: string,
   to: string,
   today: string,
+  simulation?: Simulation,
 ): Forecast | null {
   if (today < from || today > to) return null;
 
@@ -58,11 +65,17 @@ export function getForecast(
     0,
     expected(today) - (minutesByDay.get(today) ?? 0),
   );
-  const remaining = days
-    .filter((day) => day > today)
-    .reduce((total, day) => total + expected(day), 0);
-  const extra = todayLeft + remaining;
-  if (!tracked || !extra) return null;
+  const upcoming = days.filter((day) => day > today);
+  const remaining = upcoming.reduce((total, day) => total + expected(day), 0);
+  // Whether there is anything to project is judged on the real pace, so a
+  // simulation dragged down to zero still shows its (empty) outcome.
+  if (!tracked || !(todayLeft + remaining)) return null;
+  const extra =
+    todayLeft +
+    upcoming.reduce(
+      (total, day) => total + (simulation?.get(day) ?? expected(day)),
+      0,
+    );
 
   // Value follows the mix of billable work and the rates seen so far.
   const billable = entries.filter((entry) => entry.billable);
@@ -91,14 +104,37 @@ export function getForecast(
   };
 }
 
-/** Minutes the pace implies for a stretch of days. */
-export function expectedMinutes(forecast: Forecast, days: string[]) {
+/** Minutes the pace implies for a stretch of days, simulated days aside. */
+export function expectedMinutes(
+  forecast: Forecast,
+  days: string[],
+  simulation?: Simulation,
+) {
   return days.reduce(
-    (total, day) =>
-      total +
-      (isWeekend(day) ? forecast.weekendMinutes : forecast.weekdayMinutes),
+    (total, day) => total + (simulation?.get(day) ?? paceOf(forecast, day)),
     0,
   );
+}
+
+/**
+ * Spreads a total chosen for a whole bucket over its days, in the proportion
+ * the pace gives them, so a weekend keeps weighing less than a weekday.
+ */
+export function spreadMinutes(
+  forecast: Forecast,
+  days: string[],
+  minutes: number,
+): Array<[string, number]> {
+  const weights = days.map((day) => paceOf(forecast, day));
+  const sum = weights.reduce((total, weight) => total + weight, 0);
+  return days.map((day, index) => [
+    day,
+    sum ? (minutes * weights[index]) / sum : minutes / days.length,
+  ]);
+}
+
+function paceOf(forecast: Forecast, day: string) {
+  return isWeekend(day) ? forecast.weekendMinutes : forecast.weekdayMinutes;
 }
 
 export function eachDay(from: string, to: string) {

@@ -189,6 +189,13 @@ export const en = {
     "At your pace so far, counting weekdays and weekends apart.",
   "reports.chartAria": "Tracked time per period",
   "reports.chartOther": "Other",
+  "reports.chartGhost": "Workload ahead, drag to simulate",
+  "reports.chartGhostAria":
+    "Simulated workload for {period}: {value}. Use the arrow keys to change it.",
+  "reports.simulated": "Simulated",
+  "reports.simulationNote":
+    "With the workload you drew in the chart; differences are against your pace so far.",
+  "reports.simulationReset": "Reset simulation",
   "reports.table.date": "Date",
   "reports.table.activity": "Activity",
   "reports.table.status": "Status",

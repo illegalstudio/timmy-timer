@@ -192,6 +192,13 @@ export const it = {
     "Al ritmo tenuto finora, contando a parte feriali e weekend.",
   "reports.chartAria": "Tempo tracciato per periodo",
   "reports.chartOther": "Altri",
+  "reports.chartGhost": "Carico futuro, trascina per simulare",
+  "reports.chartGhostAria":
+    "Carico simulato per {period}: {value}. Usa le frecce per modificarlo.",
+  "reports.simulated": "Simulato",
+  "reports.simulationNote":
+    "Con il carico disegnato nel grafico; le differenze sono rispetto al ritmo tenuto finora.",
+  "reports.simulationReset": "Azzera simulazione",
   "reports.table.date": "Data",
   "reports.table.activity": "Attività",
   "reports.table.status": "Stato",

@@ -197,6 +197,13 @@ export const fr = {
     "À votre rythme actuel, jours ouvrés et week-ends comptés séparément.",
   "reports.chartAria": "Temps suivi par période",
   "reports.chartOther": "Autres",
+  "reports.chartGhost": "Charge à venir, glissez pour simuler",
+  "reports.chartGhostAria":
+    "Charge simulée pour {period} : {value}. Utilisez les flèches pour la modifier.",
+  "reports.simulated": "Simulé",
+  "reports.simulationNote":
+    "Avec la charge dessinée dans le graphique ; les écarts sont calculés par rapport à votre rythme actuel.",
+  "reports.simulationReset": "Réinitialiser la simulation",
   "reports.table.date": "Date",
   "reports.table.activity": "Activité",
   "reports.table.status": "Statut",
