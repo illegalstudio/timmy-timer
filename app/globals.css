@@ -2877,3 +2877,28 @@ button:disabled {
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
+
+/* Above any open modal: the save waiting behind it needs this answered. */
+.session-backdrop {
+  z-index: 40;
+}
+
+.session-dialog {
+  width: min(460px, 100%);
+}
+
+.session-note {
+  margin: 0;
+  padding: 11px 14px;
+  color: var(--ink-soft);
+  font-size: 12px;
+  background: var(--cream);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.session-note.is-warning {
+  color: #8f382b;
+  background: #fff0ed;
+  border-color: #efc6be;
+}

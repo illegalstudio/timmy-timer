@@ -10,6 +10,7 @@ import {
 import { EntryModal } from "./components/entry-modal";
 import { Icon, type IconName } from "./components/icon";
 import { Reports } from "./components/reports";
+import { SessionDialog, useSessionRenewal } from "./components/session-dialog";
 import { Settings } from "./components/settings";
 import { Timmy } from "./components/timmy";
 import { CalendarPage } from "./components/week-calendar";
@@ -32,6 +33,7 @@ import type {
   View,
 } from "./lib/types";
 import type { MessageKey } from "./i18n/types";
+import { apiFetch, SessionExpiredError } from "./lib/api";
 
 const EMPTY_DATA: AppData = { clients: [], projects: [], entries: [] };
 const NAVIGATION: Array<{
@@ -93,13 +95,31 @@ export default function TimmyTimer({ view }: { view: View }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<MessageKey | null>(null);
   const [timmyNotice, setTimmyNotice] = useState("");
+  const { renew, dialog: sessionDialog } = useSessionRenewal();
 
   useEffect(() => {
-    void loadData()
-      .then(setData)
-      .catch(() => setError("app.loadError"))
-      .finally(() => setLoading(false));
-  }, []);
+    let cancelled = false;
+    async function load() {
+      for (;;) {
+        try {
+          const next = await loadData();
+          if (!cancelled) setData(next);
+          return;
+        } catch (failure) {
+          if (failure instanceof SessionExpiredError && (await renew()))
+            continue;
+          if (!cancelled) setError("app.loadError");
+          return;
+        }
+      }
+    }
+    void load().finally(() => {
+      if (!cancelled) setLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [renew]);
 
   useEffect(() => {
     document.title = `${t(PAGE_TITLE_KEYS[view])} | Timmy Timer`;
@@ -113,17 +133,28 @@ export default function TimmyTimer({ view }: { view: View }) {
 
   const mutate: Mutate = async (method, body, url = "/api/data") => {
     setError(null);
-    const response = await fetch(url, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: body ? JSON.stringify(body) : undefined,
-    });
-    if (!response.ok) {
-      setError("app.actionError");
-      return false;
+    for (;;) {
+      try {
+        const response = await apiFetch(url, {
+          method,
+          headers: { "Content-Type": "application/json" },
+          body: body ? JSON.stringify(body) : undefined,
+        });
+        if (!response.ok) {
+          setError("app.actionError");
+          return false;
+        }
+        setData(await response.json());
+        return true;
+      } catch (failure) {
+        // Access stopped the request before it reached the app, so sending
+        // it again once signed in cannot apply it twice.
+        const expired = failure instanceof SessionExpiredError;
+        if (expired && (await renew())) continue;
+        setError(expired ? "session.notSaved" : "app.actionError");
+        return false;
+      }
     }
-    setData(await response.json());
-    return true;
   };
 
   const dayMinutes = useMemo(
@@ -286,6 +317,7 @@ export default function TimmyTimer({ view }: { view: View }) {
           onConfirm={deleteEntity}
         />
       )}
+      <SessionDialog {...sessionDialog} />
       {timmyNotice && (
         <div className="timmy-toast" role="status" aria-live="polite">
           <span className="toast-timmy-wrap">
@@ -631,7 +663,7 @@ function calculateDayMinutes(data: AppData, date: string) {
 }
 
 async function loadData(): Promise<AppData> {
-  const response = await fetch("/api/data");
+  const response = await apiFetch("/api/data");
   if (!response.ok) throw new Error("Unable to load data");
   return response.json();
 }

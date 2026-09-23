@@ -15,6 +15,20 @@ export const it = {
   "app.errorPrefix": "Ops.",
   "app.loadError": "Impossibile caricare i dati.",
   "app.actionError": "Operazione non riuscita. Riprova.",
+  "session.eyebrow": "Ci sei ancora?",
+  "session.title": "La sessione è scaduta",
+  "session.pending":
+    "Accedi di nuovo e Timmy salverà subito le tue modifiche. Niente di quello che hai inserito è andato perso.",
+  "session.idle":
+    "Accedi di nuovo adesso, così le prossime modifiche vengono salvate senza sorprese.",
+  "session.waiting":
+    "Completa l'accesso nella finestra appena aperta. Timmy ti aspetta qui.",
+  "session.blocked":
+    "Il browser ha bloccato la finestra di accesso. Consenti i pop-up per questo sito e riprova.",
+  "session.signIn": "Accedi di nuovo",
+  "session.dismiss": "Non ora",
+  "session.notSaved":
+    "Non salvato: la sessione è scaduta. Accedi di nuovo per salvare le modifiche.",
   "app.loading": "Timmy sta preparando tutto…",
   "app.closeNotice": "Chiudi il messaggio di Timmy",
   "toast.saved": "Modifiche salvate. Tutto in ordine!",

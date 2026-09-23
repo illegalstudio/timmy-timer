@@ -15,6 +15,20 @@ export const de = {
   "app.errorPrefix": "Hoppla.",
   "app.loadError": "Deine Daten konnten nicht geladen werden.",
   "app.actionError": "Die Aktion ist fehlgeschlagen. Versuche es erneut.",
+  "session.eyebrow": "Noch da?",
+  "session.title": "Deine Sitzung ist abgelaufen",
+  "session.pending":
+    "Melde dich erneut an, dann speichert Timmy deine Änderungen sofort. Nichts von deinen Eingaben geht verloren.",
+  "session.idle":
+    "Melde dich jetzt erneut an, damit deine nächsten Änderungen ohne Überraschungen gespeichert werden.",
+  "session.waiting":
+    "Schließe die Anmeldung im gerade geöffneten Fenster ab. Timmy wartet hier.",
+  "session.blocked":
+    "Dein Browser hat das Anmeldefenster blockiert. Erlaube Pop-ups für diese Seite und versuche es erneut.",
+  "session.signIn": "Erneut anmelden",
+  "session.dismiss": "Nicht jetzt",
+  "session.notSaved":
+    "Nicht gespeichert: Deine Sitzung ist abgelaufen. Melde dich erneut an, um deine Änderungen zu speichern.",
   "app.loading": "Timmy bereitet alles vor…",
   "app.closeNotice": "Timmys Nachricht schließen",
   "toast.saved": "Änderungen gespeichert. Alles in Ordnung!",

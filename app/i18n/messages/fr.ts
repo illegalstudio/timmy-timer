@@ -15,6 +15,20 @@ export const fr = {
   "app.errorPrefix": "Oups.",
   "app.loadError": "Impossible de charger vos données.",
   "app.actionError": "L’opération a échoué. Réessayez.",
+  "session.eyebrow": "Toujours là ?",
+  "session.title": "Votre session a expiré",
+  "session.pending":
+    "Reconnectez-vous et Timmy enregistrera aussitôt vos modifications. Rien de ce que vous avez saisi n'est perdu.",
+  "session.idle":
+    "Reconnectez-vous maintenant pour que vos prochaines modifications soient enregistrées sans surprise.",
+  "session.waiting":
+    "Terminez la connexion dans la fenêtre qui vient de s'ouvrir. Timmy vous attend ici.",
+  "session.blocked":
+    "Votre navigateur a bloqué la fenêtre de connexion. Autorisez les pop-ups pour ce site, puis réessayez.",
+  "session.signIn": "Se reconnecter",
+  "session.dismiss": "Plus tard",
+  "session.notSaved":
+    "Non enregistré : votre session a expiré. Reconnectez-vous pour enregistrer vos modifications.",
   "app.loading": "Timmy prépare tout…",
   "app.closeNotice": "Fermer le message de Timmy",
   "toast.saved": "Modifications enregistrées. Tout est en ordre !",

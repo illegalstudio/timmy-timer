@@ -13,6 +13,20 @@ export const en = {
   "app.errorPrefix": "Oops.",
   "app.loadError": "We couldn't load your data.",
   "app.actionError": "Something went wrong. Please try again.",
+  "session.eyebrow": "Still there?",
+  "session.title": "Your session has expired",
+  "session.pending":
+    "Sign in again and Timmy will save your changes right away. Nothing you entered is lost.",
+  "session.idle":
+    "Sign in again now, so your next changes are saved without surprises.",
+  "session.waiting":
+    "Finish signing in in the window that just opened. Timmy is waiting here.",
+  "session.blocked":
+    "Your browser blocked the sign-in window. Allow pop-ups for this site, then try again.",
+  "session.signIn": "Sign in again",
+  "session.dismiss": "Not now",
+  "session.notSaved":
+    "Not saved: your session has expired. Sign in again to save your changes.",
   "app.loading": "Timmy is getting everything ready…",
   "app.closeNotice": "Dismiss Timmy's message",
   "toast.saved": "Changes saved. Everything is in order!",
