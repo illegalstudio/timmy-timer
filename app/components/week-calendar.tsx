@@ -84,8 +84,14 @@ export function CalendarView({
   useEffect(() => {
     if (!contextMenu) return;
 
+    // A press outside the menu only dismisses it, as native menus do. It is
+    // caught on the way down, before React sees it, so it cannot also start a
+    // new slot, drag an entry or open whatever sits underneath.
     function handleOutside(event: PointerEvent) {
       if ((event.target as Element).closest(".entry-context-menu")) return;
+      event.stopPropagation();
+      event.preventDefault();
+      swallowNextClick();
       setContextMenu(null);
     }
 
@@ -97,12 +103,12 @@ export function CalendarView({
       setContextMenu(null);
     }
 
-    window.addEventListener("pointerdown", handleOutside);
+    window.addEventListener("pointerdown", handleOutside, true);
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("resize", closeMenu);
     window.addEventListener("scroll", closeMenu, true);
     return () => {
-      window.removeEventListener("pointerdown", handleOutside);
+      window.removeEventListener("pointerdown", handleOutside, true);
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("resize", closeMenu);
       window.removeEventListener("scroll", closeMenu, true);
@@ -1021,4 +1027,23 @@ function formatWeekRange(value: string, locale: string) {
     year: "numeric",
   });
   return `${startLabel} – ${endLabel}`;
+}
+
+// The click that follows a dismissing press is dropped too. The listener
+// outlives the menu, which is already gone by then, and is removed right after
+// the press ends in case it never turns into a click (a drag away, say).
+function swallowNextClick() {
+  const swallow = (event: MouseEvent) => {
+    event.stopPropagation();
+    event.preventDefault();
+  };
+  window.addEventListener("click", swallow, { capture: true, once: true });
+  window.addEventListener(
+    "pointerup",
+    () =>
+      window.setTimeout(() =>
+        window.removeEventListener("click", swallow, true),
+      ),
+    { capture: true, once: true },
+  );
 }
